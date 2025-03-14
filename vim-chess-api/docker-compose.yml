@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: postgres:latest
+    container_name: vimchess
+    environment:
+      - POSTGRES_USER=vimchess
+      - POSTGRES_PASSWORD=123
+      - POSTGRES_DB=vimchessdb
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    ports:
+      - '5436:5432'
+volumes:
+  postgres:

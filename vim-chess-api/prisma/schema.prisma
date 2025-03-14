@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  uid          String   @id @default(uuid()) @db.Uuid
+  email        String   @unique @db.VarChar(30)
+  password     String   @db.VarChar(255)
+  username     String   @unique @db.VarChar(30)
+  firstname    String   @db.VarChar(30)
+  lastname     String   @db.VarChar(30)
+  country      String   @db.VarChar(30)
+  elo          Int      @default(0)
+  connected    Boolean  @default(false)
+  refreshToken String?
+  resetToken   String?
+  createdAt    DateTime @default(now()) @db.Timestamp()
+  updatedAt    DateTime @updatedAt @db.Timestamp()
+
+  FriendshipFrom Friendship[] @relation("Friendship_From")
+  FriendshipTo   Friendship[] @relation("Friendship_To")
+  SendFrom       Send[]       @relation("Send_From")
+  SendTo         Send[]       @relation("Send_To")
+  Move           Move[]       @relation()
+
+  @@map("users")
+}
+
+model Friendship {
+  uid_from  String   @db.Uuid
+  uid_to    String   @db.Uuid
+  status    String
+  createdAt DateTime @default(now()) @db.Timestamp()
+  updatedAt DateTime @updatedAt @db.Timestamp()
+
+  UserFrom User @relation("Friendship_From", fields: [uid_to], references: [uid])
+  UserTo   User @relation("Friendship_To", fields: [uid_from], references: [uid])
+
+  @@id([uid_from, uid_to])
+  @@map("friendships")
+}
+
+model Send {
+  uid_from  String   @db.Uuid
+  uid_to    String   @db.Uuid
+  message   String
+  createdAt DateTime @default(now()) @db.Timestamp()
+
+  SendFrom User @relation("Send_From", fields: [uid_from], references: [uid])
+  SendTo   User @relation("Send_To", fields: [uid_to], references: [uid])
+
+  @@id([uid_from, uid_to])
+  @@map("sends")
+}
+
+model Game {
+  id         Int          @id @default(autoincrement())
+  uid_white  String       @db.Uuid
+  uid_black  String       @db.Uuid
+  chess      Json
+  uid_winner String?
+  uid_looser String?
+  max_time   Int          @default(10)
+  is_finish  Boolean      @default(false)
+  is_draw    Boolean      @default(false)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  SendInGame SendInGame[]
+  Move       Move[]
+
+  @@map("games")
+}
+
+model SendInGame {
+  uid_user  String   @db.Uuid()
+  id_game   Int
+  message   String
+  createdAt DateTime @default(now())
+
+  Game Game @relation(fields: [id_game], references: [id])
+
+  @@id([uid_user, id_game])
+}
+
+model Move {
+  uid_user  String?  @db.Uuid
+  uid_ia    String?  @db.Uuid
+  id_game   Int
+  notation  String
+  time      Int
+  createdAt DateTime @default(now())
+
+  User User? @relation(fields: [uid_user], references: [uid])
+  IA   IA?   @relation(fields: [uid_ia], references: [uid])
+  Game Game  @relation(fields: [id_game], references: [id])
+
+  @@id([notation, id_game, time])
+  @@map("moves")
+}
+
+model IA {
+  uid   String @id @default(uuid()) @db.Uuid
+  name  String @unique
+  level Int
+  Move  Move[]
+}
