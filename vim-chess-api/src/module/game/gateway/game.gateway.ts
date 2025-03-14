@@ -31,9 +31,4 @@ export class GameGateway {
     update(@MessageBody() updateGameDto: UpdateGameDto) {
         this.gameService.update(updateGameDto.id, updateGameDto);
     }
-
-    @SubscribeMessage('removeGame')
-    remove(@MessageBody() id: number) {
-        this.gameService.remove(id);
-    }
 }
