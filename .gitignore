@@ -1,8 +1,8 @@
 # compiled output
-/dist
-/node_modules
-/build
-/vim-chess-api/prisma/migrations
+**/dist
+**/node_modules
+**/build
+**/prisma/migrations
 
 # Logs
 logs

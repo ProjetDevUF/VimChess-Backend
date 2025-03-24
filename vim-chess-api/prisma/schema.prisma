@@ -27,6 +27,7 @@ model User {
   SendFrom       Send[]       @relation("Send_From")
   SendTo         Send[]       @relation("Send_To")
   Move           Move[]       @relation()
+  Session        Session[]
 
   @@map("users")
 }
@@ -108,4 +109,13 @@ model IA {
   name  String @unique
   level Int
   Move  Move[]
+}
+
+model Session {
+  id           Int      @id @default(autoincrement())
+  refreshToken String   @db.VarChar
+  deviceId     String   @db.VarChar
+  expiresIn    DateTime @default(dbgenerated("(now() + '417:00:00'::interval)")) @db.Timestamptz()
+  userUid      String
+  user         User     @relation(fields: [userUid], references: [uid])
 }

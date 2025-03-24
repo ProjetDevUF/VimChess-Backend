@@ -1,4 +1,3 @@
-import {Client} from "./client.entity";
-import {Game} from "./game.entity";
+import { Client } from './client.entity';
 
-export {Client, Game}
+export { Client };

@@ -1,0 +1,36 @@
+import { EchecData, MateData, StrikedData, CompletedMove } from './end.types';
+import {
+  GameData,
+  Cell,
+  CellUpdate,
+  DrawGame,
+  Board,
+  Config,
+  Figure,
+  Figures,
+  FiguresCellState,
+  FiguresSet,
+  GameResult,
+  Move,
+  GameWithWinner,
+} from './game.types';
+
+export {
+  EchecData,
+  MateData,
+  StrikedData,
+  CompletedMove,
+  Move,
+  GameData,
+  Cell,
+  GameResult,
+  CellUpdate,
+  FiguresCellState,
+  Figure,
+  FiguresSet,
+  DrawGame,
+  Figures,
+  Board,
+  Config,
+  GameWithWinner,
+};

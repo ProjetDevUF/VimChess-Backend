@@ -1,34 +1,53 @@
-import {WebSocketGateway, SubscribeMessage, MessageBody, WebSocketServer} from '@nestjs/websockets';
-import {GameService} from '../services/game.service';
-import {CreateGameDto} from '../dto/create-game.dto';
-import {UpdateGameDto} from '../dto/update-game.dto';
-import {Server} from 'socket.io';
+import {
+  WebSocketGateway,
+  SubscribeMessage,
+  MessageBody,
+  WebSocketServer,
+  OnGatewayDisconnect,
+  OnGatewayConnection,
+} from '@nestjs/websockets';
+import { GameService } from '../services/game.service';
+import { CreateGameDto, UpdateGameDto } from '../dto';
+import { Server } from 'socket.io';
+import { room } from 'src/common/constants/game/Emit.Types';
+import { UseFilters, UsePipes, ValidationPipe } from '@nestjs/common';
+import { WsValidationFilter } from '../../../common/filters/WsValidationFilter';
+import { Client } from '../entities';
 
-@WebSocketGateway({namespace: 'game', cors: true, transports: ['websocket']})
-export class GameGateway {
-    constructor(private readonly gameService: GameService) {
-    }
+@WebSocketGateway({ namespace: 'game', cors: true, transports: ['websocket'] })
+@UseFilters(new WsValidationFilter())
+@UsePipes(new ValidationPipe())
+export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
+  constructor(private readonly gameService: GameService) {}
 
-    @WebSocketServer()
-    server: Server;
+  @WebSocketServer()
+  server: Server;
 
-    @SubscribeMessage('createGame')
-    create(@MessageBody() createGameDto: CreateGameDto) {
-        this.gameService.create(createGameDto);
-    }
+  handleConnection(client: Client) {
+    console.log(`Client connected: ${client.userUid}`);
+  }
 
-    @SubscribeMessage('findAllGame')
-    findAll() {
-        this.gameService.findAll();
-    }
+  handleDisconnect(client: Client) {
+    console.log(`Client disconnected: ${client.userUid}`);
+  }
 
-    @SubscribeMessage('findOneGame')
-    findOne(@MessageBody() id: number) {
-        this.gameService.findOne(id);
-    }
+  @SubscribeMessage('createGame')
+  create(@MessageBody() createGameDto: CreateGameDto) {
+    this.gameService.create(createGameDto);
+  }
 
-    @SubscribeMessage('updateGame')
-    update(@MessageBody() updateGameDto: UpdateGameDto) {
-        this.gameService.update(updateGameDto.id, updateGameDto);
-    }
+  @SubscribeMessage('findAllGame')
+  findAll() {
+    this.gameService.findAll();
+  }
+
+  @SubscribeMessage('findOneGame')
+  findOne(@MessageBody() id: number) {
+    this.gameService.findOne(id);
+  }
+
+  @SubscribeMessage('updateGame')
+  update(@MessageBody() updateGameDto: UpdateGameDto) {
+    this.gameService.update(updateGameDto.id, updateGameDto);
+  }
 }
