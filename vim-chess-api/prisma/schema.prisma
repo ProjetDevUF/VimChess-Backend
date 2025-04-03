@@ -26,7 +26,6 @@ model User {
   FriendshipTo   Friendship[] @relation("Friendship_To")
   SendFrom       Send[]       @relation("Send_From")
   SendTo         Send[]       @relation("Send_To")
-  Move           Move[]       @relation()
   Session        Session[]
 
   @@map("users")
@@ -61,18 +60,17 @@ model Send {
 
 model Game {
   id         Int          @id @default(autoincrement())
+  move       Json
   uid_white  String       @db.Uuid
   uid_black  String       @db.Uuid
-  chess      Json
-  uid_winner String?
-  uid_looser String?
+  uid_winner String?      @db.Uuid
+  uid_looser String?      @db.Uuid
   max_time   Int          @default(10)
   is_finish  Boolean      @default(false)
   is_draw    Boolean      @default(false)
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
   SendInGame SendInGame[]
-  Move       Move[]
 
   @@map("games")
 }
@@ -88,27 +86,10 @@ model SendInGame {
   @@id([uid_user, id_game])
 }
 
-model Move {
-  uid_user  String?  @db.Uuid
-  uid_ia    String?  @db.Uuid
-  id_game   Int
-  notation  String
-  time      Int
-  createdAt DateTime @default(now())
-
-  User User? @relation(fields: [uid_user], references: [uid])
-  IA   IA?   @relation(fields: [uid_ia], references: [uid])
-  Game Game  @relation(fields: [id_game], references: [id])
-
-  @@id([notation, id_game, time])
-  @@map("moves")
-}
-
 model IA {
   uid   String @id @default(uuid()) @db.Uuid
   name  String @unique
   level Int
-  Move  Move[]
 }
 
 model Session {
