@@ -30,7 +30,7 @@ export type Config = {
 };
 type SimplifiedPlayer = {
   userUid: string;
-  name: string;
+  username: string;
   side: 'w' | 'b';
 };
 export type GameData = {

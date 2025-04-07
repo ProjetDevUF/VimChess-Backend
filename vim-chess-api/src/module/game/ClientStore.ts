@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Client } from '../entities';
+import { Client } from './entities';
 
 @Injectable()
 export class ClientStore {

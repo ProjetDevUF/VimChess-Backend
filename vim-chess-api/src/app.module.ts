@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import {AuthModule, GameModule, UsersModule} from "./module";
+import { AuthModule, GameModule, UsersModule } from './module';
 
 @Module({
   imports: [UsersModule, GameModule, AuthModule],

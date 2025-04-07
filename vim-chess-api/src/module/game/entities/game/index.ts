@@ -14,6 +14,7 @@ import {
   Move,
   GameWithWinner,
 } from './game.types';
+import { Message } from './game.chat';
 
 export {
   EchecData,
@@ -33,4 +34,5 @@ export {
   Board,
   Config,
   GameWithWinner,
+  Message,
 };

@@ -7,6 +7,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Role {
+  id   Int    @id @default(autoincrement())
+  role String @unique
+  User User[]
+}
+
 model User {
   uid          String   @id @default(uuid()) @db.Uuid
   email        String   @unique @db.VarChar(30)
@@ -21,7 +27,9 @@ model User {
   resetToken   String?
   createdAt    DateTime @default(now()) @db.Timestamp()
   updatedAt    DateTime @updatedAt @db.Timestamp()
+  roleId       Int
 
+  Role           Role         @relation(fields: [roleId], references: [id])
   FriendshipFrom Friendship[] @relation("Friendship_From")
   FriendshipTo   Friendship[] @relation("Friendship_To")
   SendFrom       Send[]       @relation("Send_From")
@@ -97,6 +105,6 @@ model Session {
   refreshToken String   @db.VarChar
   deviceId     String   @db.VarChar
   expiresIn    DateTime @default(dbgenerated("(now() + '417:00:00'::interval)")) @db.Timestamptz()
-  userUid      String
-  user         User     @relation(fields: [userUid], references: [uid])
+  userUid      String   @db.Uuid
+  User         User     @relation(fields: [userUid], references: [uid])
 }
