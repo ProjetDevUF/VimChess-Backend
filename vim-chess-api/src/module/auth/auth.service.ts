@@ -48,7 +48,7 @@ export class AuthService {
 
   async register({ password, ...userDto }: CreateUserDto) {
     const existingUser = await this.userModel.findByEmail(userDto.email);
-    if (!existingUser) throw new ConflictException(ERROR.AlreadyExists);
+    if (existingUser) throw new ConflictException(ERROR.AlreadyExists);
     const hashedPassword = await bcrypt.hash(password, 10);
     return this.userModel.createUser({ password: hashedPassword, ...userDto });
   }
