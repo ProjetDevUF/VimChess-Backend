@@ -1,4 +1,4 @@
-import { CreateGameDto } from './create-game.dto';
+import { CreateGameDto } from './CreateGame.dto';
 import { UpdateGameDto } from './update-game.dto';
 import { InitedGameDataDto } from './InitedGameData.dto';
 import { ChatMessage } from './ChatMessage.dto';

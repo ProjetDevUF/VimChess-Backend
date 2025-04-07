@@ -9,14 +9,13 @@ import { GameWithWinner } from './game';
 export class Player {
   side: 'w' | 'b';
   time: number;
-  intervalLabel?: NodeJS.Timeout;
   turningPlayer?: boolean;
   client: Client;
 
-  constructor(client: Client, side: 'w' | 'b', allTime: number) {
+  constructor(client: Client, side: 'w' | 'b') {
     this.client = client;
     this.side = side;
-    this.time = allTime;
+    this.time = 600; // 10min en sec
     this.turningPlayer = false;
   }
 

@@ -5,5 +5,4 @@ export type InitedGameDataDto = {
   gameId: number;
   side: 'w' | 'b';
   maxTime: number;
-  timeIncrement: number;
 };

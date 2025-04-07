@@ -12,17 +12,16 @@ import { GameList } from './game.list';
 export class GameService {
   constructor(
     private readonly list: GameList,
-    @Inject('GameAdapterI') private readonly adapter: GameAdapterI,
     private gameModel: GameModel,
   ) {}
 
-  public createGame(player: Client, config: CreateGameDto): Game {
-    const newGame = new Game(
-      player,
-      config,
-      this.injectableGameEndCallback.bind(this),
-    );
-    this.gameModel.createGame(newGame);
+  public async createGame(
+    player: Client,
+    config: CreateGameDto,
+  ): Promise<Game> {
+    const newGame = new Game(player, config);
+    const gameDb = await this.gameModel.createGame(newGame);
+    newGame.id = gameDb.id;
     this.list.addGameToLobby(newGame);
     return newGame;
   }

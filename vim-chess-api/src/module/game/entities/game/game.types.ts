@@ -25,8 +25,6 @@ export type CellUpdate = {
 
 export type Config = {
   side: 'w' | 'b' | 'rand';
-  time: number;
-  timeIncrement: number;
 };
 type SimplifiedPlayer = {
   userUid: string;

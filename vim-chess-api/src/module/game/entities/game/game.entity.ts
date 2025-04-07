@@ -13,15 +13,12 @@ export class Game {
   moves: Move[] = [];
   winner: null | Player = null;
   looser: null | Player = null;
-  endGameByTimeoutCb: (game: Game, winer: Player, looser: Player) => void;
 
-  constructor(creator: Client, config: Config, gameEndCallback) {
-    this.endGameByTimeoutCb = gameEndCallback;
-
+  constructor(creator: Client, config: Config) {
     const side: 'w' | 'b' =
       config.side === 'rand' ? (Math.random() > 0.5 ? 'w' : 'b') : config.side;
 
-    const player = new Player(creator, side, config.time);
+    const player = new Player(creator, side);
     this.players = [player];
     this.config = config;
   }

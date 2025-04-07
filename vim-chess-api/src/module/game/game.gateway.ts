@@ -14,7 +14,7 @@ import { UseFilters, UsePipes, ValidationPipe } from '@nestjs/common';
 import { WsValidationFilter } from '../../common/filters/WsValidationFilter';
 import { ClientStore } from './ClientStore';
 import { ConnectionPatchProvider } from './connection.provider';
-import {room, Game, Lobby} from '../../common/constants/game/Emit.Types';
+import { room, Game, Lobby } from '../../common/constants/game/Emit.Types';
 
 @WebSocketGateway({
   namespace: 'game',

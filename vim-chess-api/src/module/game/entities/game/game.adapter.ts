@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadGatewayException, Injectable } from '@nestjs/common';
 import {
   InitedGameDataDto as InitedGameData,
   PlainBoardState,
@@ -30,12 +30,15 @@ export class GameAdapter implements GameAdapterI {
 
   public initedGameDataDto(userUid: string, game: Game): InitedGameData {
     const plainObj = this.plainBoardState(game);
+    const side = game.players.find((pl) => pl.userUid === userUid)?.side;
+    if (!side) {
+      throw new BadGatewayException();
+    }
     return {
       board: plainObj,
       gameId: game.id,
-      side: game.players.find((pl) => pl.userUid === userUid).side,
-      maxTime: game.config.time,
-      timeIncrement: game.config.timeIncrement,
+      side,
+      maxTime: 600,
     };
   }
 
@@ -45,7 +48,9 @@ export class GameAdapter implements GameAdapterI {
       moves: game.moves,
       config: game.config,
     };
-
+    if (!(game.winner && game.looser)) {
+      throw new BadGatewayException();
+    }
     const plainWinner = {
       userUid: game.winner.userUid,
       username: game.winner.username,
@@ -63,8 +68,8 @@ export class GameAdapter implements GameAdapterI {
   public gameWithDrawDto(game: Game): DrawGame {
     const [pl1, pl2] = game.players.map((pl: Player) => {
       return {
-        userId: pl.userUid,
-        name: pl.username,
+        userUid: pl.userUid,
+        username: pl.username,
         side: pl.side,
       };
     });

@@ -1,7 +1,5 @@
-import { Injectable } from '@nestjs/common';
 import { Client } from './entities';
 
-@Injectable()
 export class ClientStore {
   clients: Map<string, Client>;
 

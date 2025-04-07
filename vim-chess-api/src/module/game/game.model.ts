@@ -17,7 +17,7 @@ export class GameModel {
       data: {
         uid_white,
         uid_black,
-        max_time: gameDto.config.time,
+        max_time: 600,
         move: '{}',
       },
     });
