@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersModel } from './users.model';
 import { UserEntity as User } from './entities/user.entity';
+import { ERROR } from '../../common/constants/error.constants';
 
 @Injectable()
 export class UsersService {
@@ -16,9 +17,12 @@ export class UsersService {
     return `This action returns all users`;
   }
 
-  async findOne(uid: string): Promise<User | null> {
+  async findOne(uid: string): Promise<User> {
     const user: User | null = await this.usersModel.findOneByUid(uid);
-    return user ? new User(user) : null;
+    if (!user) {
+      throw new NotFoundException(ERROR.ResourceNotFound);
+    }
+    return new User(user);
   }
 
   update(id: number, updateUserDto: UpdateUserDto) {
