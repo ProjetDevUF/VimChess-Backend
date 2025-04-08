@@ -55,14 +55,14 @@ export class AuthService {
 
   generateAccessToken(payload: object): string {
     return this.jwtService.sign(payload, {
-      secret: this.configService.get('JWT_SECRET'),
+      secret: this.configService.get('JWT_SECRET_KEY'),
       expiresIn: this.configService.get('ACCESS_TOKEN_EXPIRATION'),
     });
   }
 
   generateRefreshToken(payload: object) {
     return this.jwtService.sign(payload, {
-      secret: this.configService.get('JWT_SECRET'),
+      secret: this.configService.get('JWT_SECRET_KEY'),
       expiresIn: this.configService.get('REFRESH_TOKEN_EXPIRATION'),
     });
   }
@@ -71,7 +71,7 @@ export class AuthService {
     const token = this.jwtService.sign(
       { userUid, name: 'Anonymous' },
       {
-        secret: this.configService.get('JWT_SECRET'),
+        secret: this.configService.get('JWT_SECRET_KEY'),
         expiresIn: this.configService.get('ACCESS_TOKEN_EXPIRATION'),
       },
     );
