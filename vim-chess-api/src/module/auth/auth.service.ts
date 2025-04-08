@@ -50,7 +50,14 @@ export class AuthService {
     const existingUser = await this.userModel.findByEmail(userDto.email);
     if (existingUser) throw new ConflictException(ERROR.AlreadyExists);
     const hashedPassword = await bcrypt.hash(password, 10);
-    return this.userModel.createUser({ password: hashedPassword, ...userDto });
+    try {
+      return this.userModel.createUser({
+        password: hashedPassword,
+        ...userDto,
+      });
+    } catch (e) {
+      throw new BadRequestException(ERROR.InvalidInputFormat);
+    }
   }
 
   generateAccessToken(payload: object): string {
