@@ -6,7 +6,8 @@ import {
   Patch,
   Param,
   Delete,
-  NotFoundException, UseGuards,
+  NotFoundException,
+  UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -14,7 +15,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { ERROR } from '../../common/constants/error.constants';
 import { UserEntity } from './entities/user.entity';
 import { GetUser } from 'src/common/decorators/get-user.decorator';
-import {OptionalJwtAuthGuard} from "../auth/strategy/jwt-auth.strategy";
+import { OptionalJwtAuthGuard } from '../auth/strategy/jwt-auth.strategy';
 
 @Controller('users')
 export class UsersController {

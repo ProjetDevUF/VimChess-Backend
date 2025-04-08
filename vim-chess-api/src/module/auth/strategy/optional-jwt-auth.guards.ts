@@ -23,11 +23,11 @@ export class JwtOptionalStrategy extends PassportStrategy(
     });
   }
 
-  async validate(payload: { userId: string }) {
-    if (!payload || !payload.userId) {
+  async validate(payload: { userUid: string }) {
+    if (!payload || !payload.userUid) {
       return null;
     }
 
-    return this.userService.findOne(payload.userId);
+    return this.userService.findOne(payload.userUid);
   }
 }
