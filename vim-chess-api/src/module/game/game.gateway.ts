@@ -37,6 +37,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     console.log(`Client connected: ${socket.id}`);
     const client = await this.connService.processClient(socket);
     this.clientStore.setClient(socket.id, client);
+    if (!client.authorized) {
+      client.anonymousTokenEvent();
+    }
   }
 
   handleDisconnect(socket: Socket) {
@@ -50,11 +53,16 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const client = this.clientStore.getClient(socket.id);
     const game = await this.gameService.createGame(client, config);
-    await client.join(game.id);
     client.gameCreatedEvent(game);
+    await client.join(game.id);
 
     const lobby = this.gameService.getLobby();
     this.server.emit(Lobby.update, lobby);
+  }
+
+  @SubscribeMessage('test')
+  test() {
+    console.log('rentrer');
   }
 
   join() {}

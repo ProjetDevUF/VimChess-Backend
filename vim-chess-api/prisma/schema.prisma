@@ -69,8 +69,8 @@ model Send {
 model Game {
   id         Int          @id @default(autoincrement())
   move       Json
-  uid_white  String       @db.Uuid
-  uid_black  String       @db.Uuid
+  uid_white  String?      @db.Uuid
+  uid_black  String?      @db.Uuid
   uid_winner String?      @db.Uuid
   uid_looser String?      @db.Uuid
   max_time   Int          @default(10)

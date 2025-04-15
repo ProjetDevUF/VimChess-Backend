@@ -5,14 +5,10 @@ export class GameModel {
   constructor(private prismaService: PrismaService) {}
 
   createGame(gameDto: Game) {
-    const uid_white =
-      gameDto.players[0].side === 'w'
-        ? gameDto.players[0].userUid
-        : gameDto.players[1].userUid;
-    const uid_black =
-      uid_white === gameDto.players[0].userUid
-        ? gameDto.players[1].userUid
-        : gameDto.players[0].userUid;
+    const uid_white: string | null =
+      gameDto.players[0].side === 'w' ? gameDto.players[0].userUid : null;
+    const uid_black: string | null =
+      gameDto.players[0].side === 'b' ? null : gameDto.players[0].userUid;
     return this.prismaService.game.create({
       data: {
         uid_white,
@@ -21,13 +17,5 @@ export class GameModel {
         move: '{}',
       },
     });
-  }
-
-  findAllGame() {
-    return `This action returns all game`;
-  }
-
-  findOneGame(id: number) {
-    return `This action returns a #${id} game`;
   }
 }

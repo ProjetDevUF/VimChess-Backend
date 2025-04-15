@@ -4,13 +4,11 @@ import { ValidationPipe } from '@nestjs/common';
 import {HttpExceptionFilter} from "./common/filters/http-exception.filter";
 
 async function bootstrap() {
-  const allowedOrigin =
-    process.env.ENV === 'dev' ? 'http://localhost:3000' : '*';
   const app = await NestFactory.create(AppModule, {
     bodyParser: true,
     rawBody: true,
     cors: {
-      origin: allowedOrigin,
+      origin: '*',
     },
   });
 

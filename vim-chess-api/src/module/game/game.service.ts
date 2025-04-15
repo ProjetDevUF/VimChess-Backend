@@ -1,11 +1,10 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateGameDto } from './dto';
 import { GameModel } from './game.model';
 import { Client } from './entities';
 import { GameData, Message } from './entities/game';
 import { Game } from './entities/game/game.entity';
 import { ERROR } from '../../common/constants/error.constants';
-import { GameAdapterI } from './game.adapter.interface';
 import { GameList } from './game.list';
 
 @Injectable()
