@@ -10,17 +10,13 @@ import {
 import { GameService } from './game.service';
 import { CreateGameDto, ChatMessage, ConnectToGame, TurnBody } from './dto';
 import { Server, Socket } from 'socket.io';
-import {
-  UseFilters,
-  UseGuards,
-  UsePipes,
-  ValidationPipe,
-} from '@nestjs/common';
+import { UseFilters, UseGuards } from '@nestjs/common';
 import { WsValidationFilter } from '../../common/filters/WsValidationFilter';
 import { ClientStore } from './ClientStore';
 import { ConnectionPatchProvider } from './connection.provider';
 import { room, Game, Lobby } from '../../common/constants/game/Emit.Types';
 import { IsPlayer } from '../../common/guards/isplayer.guard';
+import { LoggerService } from '../../common/filters/logger';
 
 @WebSocketGateway({
   namespace: 'game',
@@ -29,17 +25,21 @@ import { IsPlayer } from '../../common/guards/isplayer.guard';
 })
 @UseFilters(new WsValidationFilter())
 export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
+  private readonly loggerService: LoggerService = new LoggerService();
+
   constructor(
     private readonly gameService: GameService,
     private readonly clientStore: ClientStore,
     private readonly connService: ConnectionPatchProvider,
-  ) {}
+  ) {
+    this.loggerService.setContext(GameGateway.name);
+  }
 
   @WebSocketServer()
   server: Server;
 
   async handleConnection(socket: Socket) {
-    console.log(`Client connected: ${socket.id}`);
+    this.loggerService.log(`Client connected: ${socket.id}`);
     const client = await this.connService.processClient(socket);
     this.clientStore.setClient(socket.id, client);
     if (!client.authorized) {
@@ -50,7 +50,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   handleDisconnect(socket: Socket) {
-    console.log(`Client disconnected: ${socket.id}`);
+    this.loggerService.log(`Client disconnected: ${socket.id}`);
     const client = this.clientStore.getClient(socket.id);
     this.gameService.removeInitedGamesBy(client);
     const opponent = this.gameService.findCurrentOpponent(client);
@@ -67,19 +67,15 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() socket: Socket,
     @MessageBody() config: CreateGameDto,
   ) {
-    console.log(`Creation new game...`);
+    this.loggerService.log(`Creation new game...`);
     const client = this.clientStore.getClient(socket.id);
     const game = await this.gameService.createGame(client, config);
     client.gameCreatedEvent(game);
     await client.join(game.id);
 
     const lobby = this.gameService.getLobby();
+    this.loggerService.log(`New game ${game.id}`);
     this.server.emit(Lobby.update, lobby);
-  }
-
-  @SubscribeMessage('test')
-  test() {
-    console.log('rentrer');
   }
 
   @SubscribeMessage('join') async join(

@@ -12,6 +12,7 @@ import { UsersModel } from '../users/users.model';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { GameAdapter } from './entities/game/game.adapter';
+import { LoggerService } from '../../common/filters/logger';
 
 @Module({
   providers: [
@@ -25,6 +26,7 @@ import { GameAdapter } from './entities/game/game.adapter';
     AuthService,
     AuthModel,
     UsersModel,
+    LoggerService,
     JwtService,
     ConfigService,
     {
