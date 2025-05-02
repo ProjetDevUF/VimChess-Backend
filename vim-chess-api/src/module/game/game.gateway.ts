@@ -68,12 +68,14 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() socket: Socket,
     @MessageBody() config: CreateGameDto,
   ) {
+    console.log(`Creation new game...`);
     const client = this.clientStore.getClient(socket.id);
     const game = await this.gameService.createGame(client, config);
     client.gameCreatedEvent(game);
     await client.join(game.id);
 
     const lobby = this.gameService.getLobby();
+    console.log(lobby);
     this.server.emit(Lobby.update, lobby);
   }
 

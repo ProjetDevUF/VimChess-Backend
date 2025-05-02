@@ -2,8 +2,9 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { Game } from './entities/game/game.entity';
 import { DrawGame, GameWithWinner } from './entities/game';
 import { Prisma } from '@prisma/client';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
+@Injectable()
 export class GameModel {
   constructor(private prismaService: PrismaService) {}
 
