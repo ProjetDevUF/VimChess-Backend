@@ -28,7 +28,6 @@ import { IsPlayer } from '../../common/guards/isplayer.guard';
   transports: ['websocket'],
 })
 @UseFilters(new WsValidationFilter())
-@UsePipes(new ValidationPipe())
 export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private readonly gameService: GameService,
