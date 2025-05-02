@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "prisma:reset-seed:dev": "dotenv -e .env -- prisma migrate reset --force --skip-seed && npm run prisma:seed:dev",
+    "prisma:reset-seed:dev": "dotenv -e .env -- prisma migrate reset --force --skip-seed",
     "prisma:deploy:dev": "prisma migrate deploy",
     "db:dev:rm": "docker compose rm postgres -s -f -v",
     "db:dev:up": "docker compose up postgres -d",

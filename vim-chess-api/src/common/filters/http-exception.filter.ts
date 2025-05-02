@@ -4,12 +4,16 @@ import {
   ArgumentsHost,
   HttpException,
   HttpStatus,
-  Logger,
 } from '@nestjs/common';
+import { LoggerService } from './logger';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
-  private readonly logger = new Logger(HttpExceptionFilter.name);
+  logger = new LoggerService();
+
+  constructor() {
+    this.logger.setContext(HttpExceptionFilter.name);
+  }
 
   /**
    * Handles exceptions thrown in the application and formats the HTTP response.
