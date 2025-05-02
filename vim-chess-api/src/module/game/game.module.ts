@@ -11,6 +11,7 @@ import { AuthModel } from '../auth/auth.model';
 import { UsersModel } from '../users/users.model';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { GameAdapter } from './entities/game/game.adapter';
 
 @Module({
   providers: [
@@ -26,6 +27,10 @@ import { ConfigService } from '@nestjs/config';
     UsersModel,
     JwtService,
     ConfigService,
+    {
+      provide: 'GameAdapterI',
+      useClass: GameAdapter,
+    },
   ],
 })
 export class GameModule {}

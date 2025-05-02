@@ -69,7 +69,7 @@ export class GameProcess {
   }
 
   public get turnSide(): 'w' | 'b' {
-    return this.store.side as 'w' | 'b';
+    return this.store.side;
   }
 
   public getBoard(): Board {
@@ -620,7 +620,7 @@ export class GameProcess {
 
   public setMate(movedFigure: Figure): null | MateData {
     if (!this.store.echec) return null;
-    if (this.canCoverKnWhenShahed(<EchecData>this.store.echec)) return null;
+    if (this.canCoverKnWhenShahed(this.store.echec)) return null;
 
     const opponentSide = this.getOpponentSide();
     const { board, opponent }: Board = this.getBoard();

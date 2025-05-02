@@ -8,13 +8,19 @@ import {
   ConnectedSocket,
 } from '@nestjs/websockets';
 import { GameService } from './game.service';
-import { CreateGameDto, ChatMessage } from './dto';
+import { CreateGameDto, ChatMessage, ConnectToGame, TurnBody } from './dto';
 import { Server, Socket } from 'socket.io';
-import { UseFilters, UsePipes, ValidationPipe } from '@nestjs/common';
+import {
+  UseFilters,
+  UseGuards,
+  UsePipes,
+  ValidationPipe,
+} from '@nestjs/common';
 import { WsValidationFilter } from '../../common/filters/WsValidationFilter';
 import { ClientStore } from './ClientStore';
 import { ConnectionPatchProvider } from './connection.provider';
 import { room, Game, Lobby } from '../../common/constants/game/Emit.Types';
+import { IsPlayer } from '../../common/guards/isplayer.guard';
 
 @WebSocketGateway({
   namespace: 'game',
@@ -40,10 +46,21 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!client.authorized) {
       client.anonymousTokenEvent();
     }
+
+    client.lobbyUpdateEvent(this.gameService.getLobby());
   }
 
   handleDisconnect(socket: Socket) {
     console.log(`Client disconnected: ${socket.id}`);
+    const client = this.clientStore.getClient(socket.id);
+    this.gameService.removeInitedGamesBy(client);
+    const opponent = this.gameService.findCurrentOpponent(client);
+    if (opponent) {
+      opponent.opponentDisconnectedEvent();
+    }
+
+    const lobby = this.gameService.getLobby();
+    this.server.emit(Lobby.update, lobby);
   }
 
   @SubscribeMessage('create')
@@ -65,13 +82,42 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     console.log('rentrer');
   }
 
-  join() {}
+  @SubscribeMessage('join') async join(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() { gameId }: ConnectToGame,
+  ) {
+    const client = this.clientStore.getClient(socket.id);
+    const game = this.gameService.connectToGame(client, gameId);
+    await client.join(game.id);
+
+    for (const player of game.players) {
+      player.initedGameDataEvent(
+        this.gameService.getInitedGameData(player.userUid, game),
+      );
+    }
+    this.server.to(room(game.id)).emit(Game.start);
+    game.start();
+    const lobby = this.gameService.getLobby();
+    this.server.emit(Lobby.update, lobby);
+  }
 
   rejoin() {}
 
   leave() {}
 
-  move() {}
+  @UseGuards(IsPlayer)
+  async move(@ConnectedSocket() socket: Socket, @MessageBody() turn: TurnBody) {
+    const client = this.clientStore.getClient(socket.id);
+    const { result, prevCell, side } = await this.gameService.makeTurn(
+      turn.gameId,
+      client.userUid,
+      turn,
+    );
+    this.server.to(room(turn.gameId)).emit(Game.boardUpdate, {
+      effect: result,
+      update: { figure: turn.figure, cell: turn.cell, prevCell, side },
+    });
+  }
 
   chatMessage(
     @ConnectedSocket() socket: Socket,
