@@ -18,6 +18,9 @@ export class UserEntity {
   refreshToken: string | null;
   createdAt: Date;
   updatedAt: Date;
+  wins: number;
+  looses: number;
+  draws: number;
 
   Role: RoleEntity;
 }

@@ -9,15 +9,16 @@ export class UsersService {
   constructor(private readonly usersModel: UsersModel) {}
 
   async findOne(uid: string): Promise<User> {
-    const user: User | null = await this.usersModel.findOneByUid(uid);
+    const user = await this.usersModel.findOneByUid(uid);
     if (!user) {
       throw new NotFoundException(ERROR.ResourceNotFound);
     }
-    return new User(user);
+    const stats = await this.usersModel.getGameStats(uid);
+    return new User({ ...user, ...stats });
   }
 
   async update(uid: string, updateUserDto: UpdateUserDto) {
-    const user: User | null = await this.usersModel.findOneByUid(uid);
+    const user = await this.usersModel.findOneByUid(uid);
     if (!user) {
       throw new NotFoundException(ERROR.ResourceNotFound);
     }
@@ -25,7 +26,7 @@ export class UsersService {
   }
 
   async remove(uid: string) {
-    const user: User | null = await this.usersModel.findOneByUid(uid);
+    const user = await this.usersModel.findOneByUid(uid);
     if (!user) {
       throw new NotFoundException(ERROR.ResourceNotFound);
     }
