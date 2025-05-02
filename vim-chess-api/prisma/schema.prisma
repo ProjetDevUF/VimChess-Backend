@@ -73,7 +73,7 @@ model Game {
   uid_black  String?      @db.Uuid
   uid_winner String?      @db.Uuid
   uid_looser String?      @db.Uuid
-  max_time   Int          @default(10)
+  max_time   Int          @default(600) //10min en sec (10*60)
   is_finish  Boolean      @default(false)
   is_draw    Boolean      @default(false)
   createdAt  DateTime     @default(now())

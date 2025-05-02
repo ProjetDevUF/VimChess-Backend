@@ -23,18 +23,22 @@ export class GameModel {
     });
   }
 
-  public async saveGameWithWinner({ winner, looser, moves }: GameWithWinner) {
+  public async saveGameWithWinner(
+    gameId: number,
+    { winner, looser, moves }: GameWithWinner,
+  ) {
     const jsonMoves = moves as Prisma.JsonArray;
     console.log(`Save game with winner. 
       Winner id = ${winner.userUid}, 
       Looser id = ${looser.userUid}.`);
     try {
-      return await this.prismaService.game.create({
+      return await this.prismaService.game.update({
+        where: {
+          id: gameId,
+        },
         data: {
           is_draw: false,
           move: jsonMoves,
-          uid_white: winner.side === 'w' ? winner.userUid : looser.userUid,
-          uid_black: winner.side === 'b' ? winner.userUid : looser.userUid,
           uid_winner: winner.userUid,
           uid_looser: looser.userUid,
           is_finish: true,

@@ -74,7 +74,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     await client.join(game.id);
 
     const lobby = this.gameService.getLobby();
-    console.log(lobby);
     this.server.emit(Lobby.update, lobby);
   }
 

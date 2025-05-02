@@ -78,6 +78,7 @@ export class GameService {
   }
 
   public async saveGame(
+    gameId: number,
     pl1: Player,
     pl2: Player,
     result: GameResult,
@@ -85,7 +86,7 @@ export class GameService {
   ) {
     if (!pl1.authorized || !pl2.authorized || !result) return null;
     return winner
-      ? await this.gameModel.saveGameWithWinner({
+      ? await this.gameModel.saveGameWithWinner(gameId, {
           winner: pl1,
           looser: pl2,
           ...result,
@@ -108,7 +109,7 @@ export class GameService {
       game.endGame(winner, looser);
       const gameDto = this.adapter.gameWithWinnerDto(game);
       this.list.gameEnd(gameDto.id);
-      await this.saveGame(winner, looser, gameDto, true);
+      await this.saveGame(gameId, winner, looser, gameDto, true);
     }
     return completedMove;
   }
