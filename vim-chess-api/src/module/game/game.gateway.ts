@@ -101,11 +101,14 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.emit(Lobby.update, lobby);
   }
 
+  @SubscribeMessage('rejoin')
   rejoin() {}
 
+  @SubscribeMessage('leave')
   leave() {}
 
   @UseGuards(IsPlayer)
+  @SubscribeMessage('move')
   async move(@ConnectedSocket() socket: Socket, @MessageBody() turn: TurnBody) {
     const client = this.clientStore.getClient(socket.id);
     const { result, prevCell, side } = await this.gameService.makeTurn(
@@ -119,6 +122,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
   }
 
+  @SubscribeMessage('chatMessage')
   chatMessage(
     @ConnectedSocket() socket: Socket,
     @MessageBody() { gameId, text }: ChatMessage,
@@ -128,11 +132,15 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(room(gameId)).emit(Game.message, message);
   }
 
+  @SubscribeMessage('surrender')
   surrender() {}
 
+  @SubscribeMessage('drawPropose')
   drawPropose() {}
 
+  @SubscribeMessage('drawAccept')
   drawAccept() {}
 
+  @SubscribeMessage('drawReject')
   drawReject() {}
 }
