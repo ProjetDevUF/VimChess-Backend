@@ -12,6 +12,7 @@ import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { CreateUserDto } from '../users/dto/create-user.dto';
+import { LoginDto } from './dto/login.dto';
 
 @Injectable()
 export class AuthService {
@@ -32,7 +33,7 @@ export class AuthService {
     return { ...auth.User, deviceId: auth.deviceId };
   }
 
-  async login(email: string, password: string) {
+  async login({ email, password, deviceId }: LoginDto) {
     const user = await this.userModel.findByEmail(email);
     if (!user) throw new NotFoundException(ERROR.IncorrectCredentials);
     const isPasswordValid = await bcrypt.compare(password, user.password);
@@ -40,6 +41,7 @@ export class AuthService {
       throw new NotFoundException(ERROR.IncorrectCredentials);
     const refreshToken = this.generateRefreshToken({ userUid: user.uid });
     await this.userModel.updateRefreshToken(user.uid, refreshToken);
+    await this.authModel.createSession(user.uid, refreshToken, deviceId);
     return {
       accessToken: this.generateAccessToken({ userUid: user.uid }),
       refreshToken,
@@ -90,7 +92,9 @@ export class AuthService {
 
   public parseToken(token: string) {
     try {
-      return this.jwtService.verify(token);
+      return this.jwtService.verify(token, {
+        secret: this.configService.get('JWT_SECRET_KEY'),
+      });
     } catch (e) {
       throw new BadRequestException('Invalid token');
     }

@@ -41,6 +41,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleConnection(socket: Socket) {
     this.loggerService.log(`Client connected: ${socket.id}`);
     const client = await this.connService.processClient(socket);
+    if (client.username !== 'Anonymous') {
+      this.loggerService.log(`Client connected is ${client.username}`);
+    }
     this.clientStore.setClient(socket.id, client);
     if (!client.authorized) {
       client.anonymousTokenEvent();

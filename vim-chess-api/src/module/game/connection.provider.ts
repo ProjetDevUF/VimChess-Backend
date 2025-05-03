@@ -23,6 +23,9 @@ export class ConnectionPatchProvider {
     token: string,
   ): Promise<void> {
     try {
+      console.log(client);
+      console.log(token);
+      console.log(payload);
       const authorizedUserData = await this.authService.checkoutUserSession(
         payload.userUid,
         payload.deviceId,
@@ -31,6 +34,7 @@ export class ConnectionPatchProvider {
       client.username = authorizedUserData.username;
       client.userUid = authorizedUserData.uid;
     } catch (e) {
+      console.log(e);
       client.authorized = false;
       client.username = 'Anonymous';
       client.userUid = payload.userUid;

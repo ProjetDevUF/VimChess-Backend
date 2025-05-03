@@ -1,6 +1,8 @@
 import { PrismaService } from '../../prisma/prisma.service';
 import { SessionEntity } from './entity/session.entity';
+import { Injectable } from '@nestjs/common';
 
+@Injectable()
 export class AuthModel {
   constructor(private prismaService: PrismaService) {}
 
