@@ -58,7 +58,6 @@ export class GameService {
 
     game.addPlayer(player);
     this.list.pushToStartedGames(gameId);
-
     return game;
   }
 

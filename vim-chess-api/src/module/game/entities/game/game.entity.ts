@@ -23,7 +23,6 @@ export class Game {
   constructor(creator: Client, config: Config) {
     const side: 'w' | 'b' =
       config.side === 'rand' ? (Math.random() > 0.5 ? 'w' : 'b') : config.side;
-
     const player = new Player(creator, side);
     this.players = [player];
     this.config = config;

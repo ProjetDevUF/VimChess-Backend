@@ -70,6 +70,10 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() socket: Socket,
     @MessageBody() config: CreateGameDto,
   ) {
+    if (!config || Object.keys(config).length === 0) {
+      config = { side: 'rand' };
+    }
+
     this.loggerService.log(`Creation new game...`);
     const client = this.clientStore.getClient(socket.id);
     const game = await this.gameService.createGame(client, config);
@@ -83,12 +87,15 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('join') async join(
     @ConnectedSocket() socket: Socket,
-    @MessageBody() { gameId }: ConnectToGame,
+    @MessageBody() connectToGame: ConnectToGame,
   ) {
+    if (typeof connectToGame === 'string') {
+      connectToGame = JSON.parse(connectToGame);
+    }
+    const { gameId } = connectToGame;
     const client = this.clientStore.getClient(socket.id);
     const game = this.gameService.connectToGame(client, gameId);
     await client.join(game.id);
-
     for (const player of game.players) {
       player.initedGameDataEvent(
         this.gameService.getInitedGameData(player.userUid, game),

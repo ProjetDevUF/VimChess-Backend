@@ -36,6 +36,20 @@ async function main() {
       roleId: adminRole.id,
     },
   });
+
+  await prisma.user.upsert({
+    where: { email: 'julien.dante@ynov.com' },
+    update: {},
+    create: {
+      lastname: 'Dante',
+      firstname: 'Julien',
+      email: 'julien.dante@ynov.com',
+      username: 'Juliendnte',
+      country: 'France',
+      password: hashedPasswordAdminUser,
+      roleId: adminRole.id,
+    },
+  });
 }
 
 main()
