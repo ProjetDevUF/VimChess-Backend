@@ -12,6 +12,7 @@ type Message = {
 
 export class GameChat {
   messages: Message[] = [];
+
   constructor(private gameId: number) {}
 
   public addMessage(message: string, { userUid, username }: Client) {

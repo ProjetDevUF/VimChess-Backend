@@ -92,5 +92,6 @@ export class Game {
 
   public start(): void {
     this.isActive = true;
+    this.chat = new GameChat(this.id);
   }
 }

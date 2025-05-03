@@ -17,6 +17,7 @@ import { ConnectionPatchProvider } from './connection.provider';
 import { room, Game, Lobby } from '../../common/constants/game/Emit.Types';
 import { IsPlayer } from '../../common/guards/isplayer.guard';
 import { LoggerService } from '../../common/filters/logger';
+import { ParseWSMessagePipe } from '../../common/filters/parse.pipe';
 
 @WebSocketGateway({
   namespace: 'game',
@@ -87,11 +88,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('join') async join(
     @ConnectedSocket() socket: Socket,
-    @MessageBody() connectToGame: ConnectToGame,
+    @MessageBody(ParseWSMessagePipe) connectToGame: ConnectToGame,
   ) {
-    if (typeof connectToGame === 'string') {
-      connectToGame = JSON.parse(connectToGame);
-    }
     const { gameId } = connectToGame;
     const client = this.clientStore.getClient(socket.id);
     const game = this.gameService.connectToGame(client, gameId);
@@ -131,7 +129,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('chatMessage')
   chatMessage(
     @ConnectedSocket() socket: Socket,
-    @MessageBody() { gameId, text }: ChatMessage,
+    @MessageBody(ParseWSMessagePipe) { gameId, text }: ChatMessage,
   ): void {
     const client = this.clientStore.getClient(socket.id);
     const message = this.gameService.pushMessage(gameId, text, client);
