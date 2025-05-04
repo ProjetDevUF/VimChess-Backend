@@ -77,7 +77,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('create')
   async create(
     @GetClient() client: Client,
-    @MessageBody() config: CreateGameDto,
+    @MessageBody(ParseWSMessagePipe) config: CreateGameDto,
   ) {
     if (!config || Object.keys(config).length === 0) {
       config = { side: 'rand' };
@@ -139,7 +139,10 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @UseGuards(IsPlayer)
   @SubscribeMessage('move')
-  async move(@GetClient() client: Client, @MessageBody() turn: TurnBody) {
+  async move(
+    @GetClient() client: Client,
+    @MessageBody(ParseWSMessagePipe) turn: TurnBody,
+  ) {
     const { result, prevCell, side } = await this.gameService.makeTurn(
       turn.gameId,
       client.userUid,
@@ -152,6 +155,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('chatMessage')
+  @UseGuards(IsPlayer)
   chatMessage(
     @GetClient() client: Client,
     @MessageBody(ParseWSMessagePipe) { gameId, text }: ChatMessage,
@@ -161,14 +165,43 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('surrender')
-  surrender() {}
+  @UseGuards(IsPlayer)
+  async surrender(
+    @GetClient() client: Client,
+    @MessageBody(ParseWSMessagePipe) { gameId }: { gameId: number },
+  ) {
+    const { winner, looser, gameDto } = await this.gameService.surrender(
+      gameId,
+      client,
+    );
+    winner.gameEndEvent(true, gameDto, GameEnd.surrender);
+    looser.gameEndEvent(false, gameDto, GameEnd.surrender);
+  }
 
   @SubscribeMessage('drawPropose')
-  drawPropose() {}
+  @UseGuards(IsPlayer)
+  drawPropose(
+    @GetClient() client: Client,
+    @MessageBody(ParseWSMessagePipe) { gameId }: { gameId: number },
+  ) {
+    const propose = this.gameService.proposeDraw(gameId, client);
+    this.server.to(room(gameId)).emit(Game.drawPropose, propose);
+  }
 
   @SubscribeMessage('drawAccept')
-  drawAccept() {}
+  @UseGuards(IsPlayer)
+  async drawAccept(
+    @GetClient() client: Client,
+    @MessageBody(ParseWSMessagePipe) { gameId }: { gameId: number },
+  ) {
+    const game = await this.gameService.acceptDraw(gameId, client);
+    this.server.to(room(gameId)).emit(Game.end, { reason: GameEnd.draw, game });
+  }
 
   @SubscribeMessage('drawReject')
-  drawReject() {}
+  @UseGuards(IsPlayer)
+  drawReject(@MessageBody(ParseWSMessagePipe) { gameId }: { gameId: number }) {
+    const result = this.gameService.rejectDraw(gameId);
+    this.server.to(room(gameId)).emit(Game.rejectDraw, result);
+  }
 }

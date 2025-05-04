@@ -133,4 +133,58 @@ export class GameService {
     await this.saveGame(winner, looser, gameDto, true);
     return { winner, looser, gameDto };
   }
+
+  public async surrender(gameId: number, client: Client) {
+    const game = this.findGameById(gameId);
+    if (!game) throw new NotFoundException('Game not found');
+
+    const [pl1, pl2] = game.players;
+    const winner = pl1.userUid !== client.userUid ? pl1 : pl2;
+    const looser = pl1.userUid === client.userUid ? pl1 : pl2;
+    game.endGame(winner, looser);
+
+    const gameDto = this.adapter.gameWithWinnerDto(game);
+    this.list.gameEnd(gameDto.id);
+    await this.saveGame(winner, looser, gameDto, true);
+    return { winner, looser, gameDto };
+  }
+
+  public proposeDraw(gameId: number, client: Client) {
+    const game = this.findGameById(gameId);
+    if (!game) throw new NotFoundException('Game not found');
+
+    const player = game.players.find((pl) => pl.userUid === client.userUid);
+    if (!player) throw new NotFoundException('Player not found');
+    if (game.draw[player.side])
+      throw new ConflictException('Propose already set');
+    game.setDrawProposeFrom(player.side);
+    return game.draw;
+  }
+
+  public async acceptDraw(gameId: number, client: Client) {
+    const game = this.findGameById(gameId);
+    if (!game) throw new NotFoundException('Game not found');
+
+    const { w, b } = game.draw;
+    const player = game.players.find((pl) => pl.userUid === client.userUid);
+    if (!player) throw new NotFoundException('Player not found');
+
+    if (!w && !b) throw new ConflictException('Draw propose wasnt set');
+    game.setDrawProposeFrom(player.side);
+    game.endGameByDraw();
+    const gameDto = this.adapter.gameWithWinnerDto(game);
+    this.list.gameEnd(gameDto.id);
+    await this.saveGame(game.players[0], game.players[1], gameDto);
+    return gameDto;
+  }
+
+  public rejectDraw(gameId: number) {
+    const game = this.findGameById(gameId);
+    const { w, b } = game.draw;
+
+    if (!w && !b) throw new ConflictException('Draw propose wasnt set');
+
+    game.rejectDraw();
+    return { w: false, b: false };
+  }
 }
