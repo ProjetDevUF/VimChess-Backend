@@ -1,9 +1,9 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
-import { GameService } from '../../module/game/game.service';
+import { GameManagementService } from '../../module/game/services/GameMagement.service';
 
 @Injectable()
 export class IsPlayer implements CanActivate {
-  constructor(private readonly service: GameService) {}
+  constructor(private readonly service: GameManagementService) {}
 
   canActivate(context: ExecutionContext): boolean {
     const wsContext = context.switchToWs();

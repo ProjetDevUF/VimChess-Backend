@@ -4,6 +4,7 @@ import { GameProcess, GameChat } from './logic';
 import { Client } from '../client.entity';
 import { CompletedMove } from './end.types';
 import { ConflictException } from '@nestjs/common';
+import { TurnEntity } from './turn.entity';
 
 export class Game {
   id: number;
@@ -69,11 +70,7 @@ export class Game {
     });
   }
 
-  public makeTurn(
-    playerUid: string,
-    figure: Figure,
-    cell: Cell,
-  ): { result: CompletedMove; prevCell: Cell; side: 'w' | 'b' } {
+  public makeTurn(playerUid: string, figure: Figure, cell: Cell): TurnEntity {
     if (!this.isActive) throw new ConflictException('Game is not active');
 
     const player = this.players.find(({ userUid }) => playerUid === userUid);

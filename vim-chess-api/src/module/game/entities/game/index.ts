@@ -15,6 +15,8 @@ import {
   GameWithWinner,
 } from './game.types';
 import { Message } from './game.chat';
+import { TurnEntity } from './turn.entity';
+import { CompletedTurnEntity } from './completed-turn.entity';
 
 export {
   EchecData,
@@ -35,4 +37,6 @@ export {
   Config,
   GameWithWinner,
   Message,
+  TurnEntity,
+  CompletedTurnEntity,
 };

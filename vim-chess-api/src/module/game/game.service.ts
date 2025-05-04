@@ -1,190 +1,112 @@
-import {
-  ConflictException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CreateGameDto, InitedGameDataDto, TurnBody } from './dto';
-import { GameModel } from './game.model';
 import { Client } from './entities';
-import { GameData, GameResult, Message } from './entities/game';
-import { Game } from './entities/game/game.entity';
-import { ERROR } from '../../common/constants/error.constants';
-import { GameList } from './game.list';
+import { GameManagementService } from './services/GameMagement.service';
+import { GameActionService } from './services/GameAction.service';
+import { GameSaveService } from './services/GameSave.service';
+import { CompletedTurnEntity, TurnEntity } from './entities/game';
 import { Player } from './entities/player.entity';
-import { GameAdapterI } from './game.adapter.interface';
+import { Game } from './entities/game/game.entity';
 
 @Injectable()
 export class GameService {
   constructor(
-    private readonly list: GameList,
-    private gameModel: GameModel,
-    @Inject('GameAdapterI') private readonly adapter: GameAdapterI,
+    private readonly gameManagementService: GameManagementService,
+    private readonly gameActionService: GameActionService,
+    private readonly gameSaveService: GameSaveService,
   ) {}
 
-  public async createGame(
-    player: Client,
-    config: CreateGameDto,
-  ): Promise<Game> {
-    const newGame = new Game(player, config);
-    const gameDb = await this.gameModel.createGame(newGame);
-    newGame.id = gameDb.id;
-    this.list.addGameToLobby(newGame);
-    return newGame;
+  public async createGame(player: Client, config: CreateGameDto) {
+    return this.gameManagementService.createGame(player, config);
   }
 
-  public pushMessage(gameId: number, message: string, client: Client): Message {
-    const game = this.findGameById(gameId);
-    return game.chat.addMessage(message, client);
-  }
-
-  public findGameById(id: number): Game {
-    const game = this.list.games.find((game) => game.id === id);
-    if (!game) throw new NotFoundException(ERROR.ResourceNotFound);
-    return game;
-  }
-
-  public getLobby(): GameData[] {
-    return this.list.getLobby();
-  }
-
-  public connectToGame(player: Client, gameId: number): Game {
-    const game = this.list.findInLobby(gameId);
-    if (!game) throw new NotFoundException('Game not found');
-    const pl1 = game.players[0];
-    if (player.userUid && pl1.userUid === player.userUid) {
-      throw new ConflictException('You are already in game');
-    }
-
-    game.addPlayer(player);
-    this.list.pushToStartedGames(gameId);
-    return game;
-  }
-
-  public removeInitedGamesBy(player: Client): void {
-    this.list.removeInitedGames(player);
-  }
-
-  public findCurrentOpponent(player: Client): Player | null {
-    const game = this.list.findPendingClientGame(player);
-    if (!game) return null;
-
-    return <Player>game.players.find((pl) => pl.userUid !== player.userUid);
-  }
-
-  public getInitedGameData(userUid: string, game: Game): InitedGameDataDto {
-    return this.adapter.initedGameDataDto(userUid, game);
-  }
-
-  public async saveGame(
-    gameId: number,
-    pl1: Player,
-    pl2: Player,
-    result: GameResult,
-    winner = false,
-  ) {
-    if (!pl1.authorized || !pl2.authorized || !result) return null;
-    return winner
-      ? await this.gameModel.saveGameWithWinner(gameId, {
-          winner: pl1,
-          looser: pl2,
-          ...result,
-        })
-      : await this.gameModel.saveGameDraw({ pl1, pl2, ...result });
+  public getLobby() {
+    return this.gameManagementService.getLobby();
   }
 
   public async makeTurn(
     gameId: number,
     userUid: string,
-    { figure, cell }: TurnBody,
-  ) {
-    const game = this.findGameById(gameId);
-    if (!game) throw new NotFoundException('Game not found');
-    const completedMove = game.makeTurn(userUid, figure, cell);
-    if (completedMove.result.mate) {
-      const [pl1, pl2] = game.players;
-      const winner = pl1.userUid === userUid ? pl1 : pl2;
-      const looser = pl1.userUid !== userUid ? pl1 : pl2;
-      game.endGame(winner, looser);
-      const gameDto = this.adapter.gameWithWinnerDto(game);
-      this.list.gameEnd(gameDto.id);
-      await this.saveGame(gameId, winner, looser, gameDto, true);
+    turn: TurnBody,
+  ): Promise<TurnEntity | CompletedTurnEntity> {
+    const completedMove: TurnEntity | CompletedTurnEntity =
+      this.gameActionService.makeTurn(gameId, userUid, turn);
+
+    if (completedMove instanceof CompletedTurnEntity) {
+      await this.gameSaveService.saveGame(
+        gameId,
+        completedMove.winner,
+        completedMove.looser,
+        completedMove.gameDto,
+        true,
+      );
     }
     return completedMove;
   }
 
-  public findPendingGame(client: Client) {
-    const game = this.list.findPendingClientGame(client);
-    if (!game) throw new NotFoundException('Game not found');
-    return game;
-  }
-
   public async leaveGame(client: Client) {
-    const game = this.list.findPendingClientGame(client);
-    if (!game) throw new NotFoundException('Game not found');
-
+    const game = this.gameActionService.findPendingGame(client);
     const [pl1, pl2] = game.players;
+
     const winner = pl1.userUid !== client.userUid ? pl1 : pl2;
     const looser = pl1.userUid === client.userUid ? pl1 : pl2;
+
     game.endGame(winner, looser);
 
-    const gameDto = this.adapter.gameWithWinnerDto(game);
-    this.list.gameEnd(gameDto.id);
-    await this.saveGame(winner, looser, gameDto, true);
+    const gameDto = this.gameActionService.gameWithWinnerDto(game);
+
+    await this.gameSaveService.finalizeGameSave(winner, looser, gameDto);
     return { winner, looser, gameDto };
   }
 
   public async surrender(gameId: number, client: Client) {
-    const game = this.findGameById(gameId);
-    if (!game) throw new NotFoundException('Game not found');
-
-    const [pl1, pl2] = game.players;
-    const winner = pl1.userUid !== client.userUid ? pl1 : pl2;
-    const looser = pl1.userUid === client.userUid ? pl1 : pl2;
-    game.endGame(winner, looser);
-
-    const gameDto = this.adapter.gameWithWinnerDto(game);
-    this.list.gameEnd(gameDto.id);
-    await this.saveGame(winner, looser, gameDto, true);
+    const { winner, looser, gameDto } = this.gameActionService.surrender(
+      gameId,
+      client,
+    );
+    await this.gameSaveService.saveGame(gameId, winner, looser, gameDto, true);
     return { winner, looser, gameDto };
   }
 
   public proposeDraw(gameId: number, client: Client) {
-    const game = this.findGameById(gameId);
-    if (!game) throw new NotFoundException('Game not found');
-
-    const player = game.players.find((pl) => pl.userUid === client.userUid);
-    if (!player) throw new NotFoundException('Player not found');
-    if (game.draw[player.side])
-      throw new ConflictException('Propose already set');
-    game.setDrawProposeFrom(player.side);
-    return game.draw;
+    return this.gameActionService.proposeDraw(gameId, client);
   }
 
   public async acceptDraw(gameId: number, client: Client) {
-    const game = this.findGameById(gameId);
-    if (!game) throw new NotFoundException('Game not found');
+    const gameDto = this.gameActionService.acceptDraw(gameId, client);
 
-    const { w, b } = game.draw;
-    const player = game.players.find((pl) => pl.userUid === client.userUid);
-    if (!player) throw new NotFoundException('Player not found');
+    const game: Game = this.gameManagementService.findGameById(gameId);
+    const [pl1, pl2] = game.players;
 
-    if (!w && !b) throw new ConflictException('Draw propose wasnt set');
-    game.setDrawProposeFrom(player.side);
-    game.endGameByDraw();
-    const gameDto = this.adapter.gameWithWinnerDto(game);
-    this.list.gameEnd(gameDto.id);
-    await this.saveGame(game.players[0], game.players[1], gameDto);
+    await this.gameSaveService.saveDraw(pl1, pl2, gameDto);
     return gameDto;
   }
 
+  public removeInitedGamesBy(player: Client): void {
+    return this.gameActionService.removeInitedGamesBy(player);
+  }
+
+  public findCurrentOpponent(player: Client): Player | undefined {
+    return this.gameActionService.findCurrentOpponent(player);
+  }
+
+  public connectToGame(client: Client, gameId: number): Game {
+    return this.gameActionService.connectToGame(client, gameId);
+  }
+
+  public getInitedGameData(userUid: string, game: Game): InitedGameDataDto {
+    return this.gameActionService.initedGameDataDto(userUid, game);
+  }
+
+  public findPendingGame(client: Client): Game {
+    return this.gameActionService.findPendingGame(client);
+  }
+
+  public pushMessage(gameId: number, message: string, client: Client) {
+    return this.gameActionService.pushMessage(gameId, message, client);
+  }
+
   public rejectDraw(gameId: number) {
-    const game = this.findGameById(gameId);
-    const { w, b } = game.draw;
-
-    if (!w && !b) throw new ConflictException('Draw propose wasnt set');
-
-    game.rejectDraw();
-    return { w: false, b: false };
+    return this.gameActionService.rejectDraw(gameId);
   }
 }
