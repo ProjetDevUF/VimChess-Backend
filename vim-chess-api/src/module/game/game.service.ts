@@ -112,4 +112,25 @@ export class GameService {
     }
     return completedMove;
   }
+
+  public findPendingGame(client: Client) {
+    const game = this.list.findPendingClientGame(client);
+    if (!game) throw new NotFoundException('Game not found');
+    return game;
+  }
+
+  public async leaveGame(client: Client) {
+    const game = this.list.findPendingClientGame(client);
+    if (!game) throw new NotFoundException('Game not found');
+
+    const [pl1, pl2] = game.players;
+    const winner = pl1.userUid !== client.userUid ? pl1 : pl2;
+    const looser = pl1.userUid === client.userUid ? pl1 : pl2;
+    game.endGame(winner, looser);
+
+    const gameDto = this.adapter.gameWithWinnerDto(game);
+    this.list.gameEnd(gameDto.id);
+    await this.saveGame(winner, looser, gameDto, true);
+    return { winner, looser, gameDto };
+  }
 }
