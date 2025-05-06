@@ -25,6 +25,7 @@ import { GetClient } from '../../common/decorators/get-client.decorator';
 import { Client } from './entities';
 import { CustomSocket } from '../../common/constants/CustomSocket.interface';
 import { CompletedTurnEntity, TurnEntity } from './entities/game';
+import { StockfishService } from './services/GameStockFish.service';
 
 @WebSocketGateway({
   namespace: 'game',
@@ -39,6 +40,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly gameService: GameService,
     private readonly clientStore: ClientStore,
     private readonly connService: ConnectionPatchProvider,
+    private readonly stockfishService: StockfishService,
   ) {
     this.loggerService.setContext(GameGateway.name);
   }
@@ -243,5 +245,44 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const result = this.gameService.rejectDraw(gameId);
     this.loggerService.log(`rejection of draw on game ${gameId}`);
     this.server.to(room(gameId)).emit(Game.rejectDraw, result);
+  }
+
+  @SubscribeMessage('ai_move')
+  async handleAIMove(
+    @MessageBody()
+    data: {
+      fen: string; // Position courante du jeu
+      difficulty?: number; // Niveau de difficulté optionnel
+    },
+  ) {
+    try {
+      const fen =
+        data.fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+
+      // Configurer la profondeur en fonction de la difficulté
+      const depth = data.difficulty
+        ? Math.min(Math.max(1, data.difficulty), 20)
+        : 10;
+
+      // Trouver le meilleur coup
+      const result = await this.stockfishService.findBestMove(fen);
+
+      return {
+        event: 'ai_move_response',
+        data: {
+          bestMove: result.bestMove,
+          evaluation: result.evaluation,
+          depth: depth,
+        },
+      };
+    } catch (error) {
+      return {
+        event: 'ai_move_error',
+        data: {
+          message: 'Impossible de trouver un coup',
+          error: error.message,
+        },
+      };
+    }
   }
 }
