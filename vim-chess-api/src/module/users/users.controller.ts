@@ -19,6 +19,11 @@ import { OptionalJwtAuthGuard } from '../auth/strategy/jwt-auth.strategy';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  @Get('connected')
+  getConnectedUser() {
+    return this.usersService.getConnectedUsers();
+  }
+
   @Get(':uid')
   @UseGuards(OptionalJwtAuthGuard)
   async findOne(@GetUser() user: UserEntity, @Param('uid') uid: string) {
@@ -43,10 +48,5 @@ export class UsersController {
   @Delete(':uid')
   remove(@Param('uid') uid: string) {
     return this.usersService.remove(uid);
-  }
-
-  @Get('connected')
-  getConnectedUser() {
-    return this.usersService
   }
 }

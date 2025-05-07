@@ -64,6 +64,14 @@ export class GameModel {
   }
 
   public async connection(uid: string, connect: boolean) {
+    const userExists = await this.prismaService.user.findUnique({
+      where: { uid },
+    });
+
+    if (!userExists) {
+      return;
+    }
+
     await this.prismaService.user.update({
       where: {
         uid,
