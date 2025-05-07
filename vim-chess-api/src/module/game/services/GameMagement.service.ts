@@ -42,4 +42,8 @@ export class GameManagementService {
   public async disconnectPlayer(uid: string) {
     await this.gameModel.connection(uid, false);
   }
+
+  public getUsersConnected() {
+    return this.gameModel.getConnectedUsers();
+  }
 }

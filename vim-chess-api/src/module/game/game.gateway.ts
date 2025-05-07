@@ -18,6 +18,7 @@ import {
   GameEnd,
   Lobby,
   room,
+  User,
 } from '../../common/constants/game/Emit.Types';
 import { IsPlayer } from '../../common/guards/isplayer.guard';
 import { LoggerService } from '../../common/filters/logger';
@@ -57,6 +58,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.anonymousTokenEvent();
     } else {
       await this.gameService.connectPlayer(client.userUid);
+      const users = await this.gameService.getUsersConnected();
+      this.server.emit(User.connected, users);
     }
 
     socket.customClient = client;
@@ -72,6 +75,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       opponent.opponentDisconnectedEvent();
     } else {
       await this.gameService.disconnectPlayer(client.userUid);
+      const users = await this.gameService.getUsersConnected();
+      this.server.emit(User.connected, users);
     }
 
     const lobby = this.gameService.getLobby();

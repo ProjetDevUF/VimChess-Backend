@@ -32,14 +32,4 @@ export class UsersService {
     }
     return this.usersModel.deleteUser(uid);
   }
-
-  async getConnectedUsers(): Promise<User[]> {
-    const users = await this.usersModel.getConnectedUsers();
-    return await Promise.all(
-      users.map(async (user) => {
-        const stats = await this.usersModel.getGameStats(user.uid);
-        return new User({ ...user, ...stats });
-      }),
-    );
-  }
 }

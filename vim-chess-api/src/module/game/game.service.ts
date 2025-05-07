@@ -117,4 +117,8 @@ export class GameService {
   public async disconnectPlayer(uid: string) {
     await this.gameManagementService.disconnectPlayer(uid);
   }
+
+  public getUsersConnected() {
+    return this.gameManagementService.getUsersConnected();
+  }
 }

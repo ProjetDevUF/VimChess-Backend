@@ -33,6 +33,7 @@ export enum Game {
 
 export enum User {
   anonymousToken = 'user:anon-token',
+  connected = 'user:connected',
 }
 
 /**
