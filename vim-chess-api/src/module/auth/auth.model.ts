@@ -54,4 +54,11 @@ export class AuthModel {
       where: { userUid: uid, deviceId },
     });
   }
+
+  public updateRefreshToken(user: any, refreshToken: string) {
+    return this.prismaService.user.update({
+      where: { uid: user.uid },
+      data: { refreshToken },
+    });
+  }
 }

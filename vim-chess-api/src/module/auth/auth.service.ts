@@ -13,6 +13,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { LoginDto } from './dto/login.dto';
+import { UserEntity } from '../users/entities/user.entity';
 
 @Injectable()
 export class AuthService {
@@ -98,5 +99,32 @@ export class AuthService {
     } catch (e) {
       throw new BadRequestException('Invalid token');
     }
+  }
+
+  validateToken(token: string): any {
+    try {
+      return this.jwtService.verify(token, {
+        secret: this.configService.get('JWT_SECRET_KEY'),
+      });
+    } catch (error) {
+      return null;
+    }
+  }
+
+  public async refreshToken(token: string) {
+    const payload: { userUid: string } = this.validateToken(token);
+    if (!payload) throw new NotFoundException(ERROR.InvalidToken);
+
+    const user = await this.userModel.findOneByUid(payload.userUid);
+    if (!user) throw new NotFoundException(ERROR.InvalidToken);
+
+    const accessToken = this.generateAccessToken({ userUid: user.uid });
+    const refreshToken = this.generateRefreshToken({ userUid: user.uid });
+
+    await this.authModel.updateRefreshToken(user, refreshToken);
+    return {
+      accessToken,
+      refreshToken,
+    };
   }
 }
