@@ -55,19 +55,23 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.clientStore.setClient(socket.id, client);
     if (!client.authorized) {
       client.anonymousTokenEvent();
+    } else {
+      await this.gameService.connectPlayer(client.userUid);
     }
 
     socket.customClient = client;
     client.lobbyUpdateEvent(this.gameService.getLobby());
   }
 
-  handleDisconnect(socket: Socket) {
+  async handleDisconnect(socket: Socket) {
     this.loggerService.log(`Client disconnected: ${socket.id}`);
     const client = this.clientStore.getClient(socket.id);
     this.gameService.removeInitedGamesBy(client);
     const opponent = this.gameService.findCurrentOpponent(client);
     if (opponent) {
       opponent.opponentDisconnectedEvent();
+    } else {
+      await this.gameService.disconnectPlayer(client.userUid);
     }
 
     const lobby = this.gameService.getLobby();

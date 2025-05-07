@@ -109,4 +109,12 @@ export class GameService {
   public rejectDraw(gameId: number) {
     return this.gameActionService.rejectDraw(gameId);
   }
+
+  public async connectPlayer(uid: string) {
+    await this.gameManagementService.connectPlayer(uid);
+  }
+
+  public async disconnectPlayer(uid: string) {
+    await this.gameManagementService.disconnectPlayer(uid);
+  }
 }

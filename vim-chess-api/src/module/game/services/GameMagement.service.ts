@@ -34,4 +34,12 @@ export class GameManagementService {
   public getLobby(): GameData[] {
     return this.list.getLobby();
   }
+
+  public async connectPlayer(uid: string) {
+    await this.gameModel.connection(uid, true);
+  }
+
+  public async disconnectPlayer(uid: string) {
+    await this.gameModel.connection(uid, false);
+  }
 }

@@ -62,4 +62,15 @@ export class GameModel {
       },
     });
   }
+
+  public async connection(uid: string, connect: boolean) {
+    await this.prismaService.user.update({
+      where: {
+        uid,
+      },
+      data: {
+        connect,
+      },
+    });
+  }
 }

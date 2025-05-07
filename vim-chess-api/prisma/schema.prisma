@@ -22,6 +22,7 @@ model User {
   lastname     String   @db.VarChar(30)
   country      String   @db.VarChar(30)
   elo          Int      @default(0)
+  connect      Boolean  @default(false)
   refreshToken String?
   resetToken   String?
   createdAt    DateTime @default(now()) @db.Timestamp()

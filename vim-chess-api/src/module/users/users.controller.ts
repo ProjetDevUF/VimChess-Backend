@@ -44,4 +44,9 @@ export class UsersController {
   remove(@Param('uid') uid: string) {
     return this.usersService.remove(uid);
   }
+
+  @Get('connected')
+  getConnectedUser() {
+    return this.usersService
+  }
 }
