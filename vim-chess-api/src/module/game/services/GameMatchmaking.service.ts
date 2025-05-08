@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { Client } from '../entities/client.entity';
+import { Client } from '../entities';
 import { GameManagementService } from './GameMagement.service';
 import { GameModel } from '../game.model';
 import { LoggerService } from '../../../common/filters/logger';
 import { Matchmaking } from '../../../common/constants/game/Emit.Types';
-import { MatchFoundDto, QueueStatusDto } from '../dto/matchmaking.dto';
+import { MatchFoundDto, QueueStatusDto } from '../dto';
 
 /**
  * Service responsible for matchmaking functionality
@@ -41,6 +41,7 @@ export class GameMatchmakingService {
   /**
    * Add a player to the matchmaking queue
    * @param client The client to add to the queue
+   * @param preferredSide The preferred side
    * @returns A promise that resolves when the player is added to the queue
    */
   public async addToQueue(
@@ -56,9 +57,9 @@ export class GameMatchmakingService {
       return;
     }
 
-    const elo = user.elo || 1200; // Default ELO if not set
+    const elo = user.elo;
 
-    // Check if player is already in queue
+    // Check if a player is already in the queue
     const existingIndex = this.queue.findIndex(
       (item) => item.client.userUid === client.userUid,
     );
@@ -91,7 +92,7 @@ export class GameMatchmakingService {
     this.timeoutIds.set(client.userUid, timeoutId);
 
     // Try to find a match immediately
-    this.findMatch();
+    await this.findMatch();
   }
 
   /**
@@ -123,7 +124,7 @@ export class GameMatchmakingService {
    * Players are matched based on their ELO rating
    * The ELO range increases over time to ensure players find a match
    */
-  private findMatch(): void {
+  private async findMatch(): Promise<void> {
     if (this.queue.length < 2) {
       return; // Need at least 2 players to make a match
     }
@@ -134,7 +135,7 @@ export class GameMatchmakingService {
     // Try to find matches
     for (let i = 0; i < this.queue.length; i++) {
       const player1 = this.queue[i];
-      if (!player1) continue; // Skip if player was removed
+      if (!player1) continue; // Skip if the player was removed
 
       // Calculate ELO range based on wait time
       const waitTime = Date.now() - player1.timestamp;
@@ -147,19 +148,19 @@ export class GameMatchmakingService {
         if (i === j) continue; // Skip self
 
         const player2 = this.queue[j];
-        if (!player2) continue; // Skip if player was removed
+        if (!player2) continue; // Skip if the player was removed
 
-        // Check if ELO difference is within range
+        // Check if the ELO difference is within range
         if (Math.abs(player1.elo - player2.elo) <= eloRange) {
           // Match found!
-          this.createMatch(player1, player2);
+          await this.createMatch(player1, player2);
 
-          // Remove both players from queue
+          // Remove both players from the queue
           this.removeFromQueue(player1.client);
           this.removeFromQueue(player2.client);
 
           // Restart matching process since queue has changed
-          this.findMatch();
+          await this.findMatch();
           return;
         }
       }
@@ -206,12 +207,12 @@ export class GameMatchmakingService {
       side,
     });
 
-    // Notify players of match
+    // Notify players of the match
     const matchFoundDto1: MatchFoundDto = {
       gameId: game.id,
       opponent: {
         username: player2.client.username,
-        elo: player2.elo || 1200,
+        elo: player2.elo,
       },
     };
 
@@ -219,7 +220,7 @@ export class GameMatchmakingService {
       gameId: game.id,
       opponent: {
         username: player1.client.username,
-        elo: player1.elo || 1200,
+        elo: player1.elo,
       },
     };
 
@@ -266,11 +267,11 @@ export class GameMatchmakingService {
    * @param timedOutPlayer The player who timed out
    * @param waitingPlayer The player who was waiting
    */
-  private handleMatchTimeout(
+  private async handleMatchTimeout(
     gameId: number,
     timedOutPlayer: Client,
     waitingPlayer: Client,
-  ): void {
+  ): Promise<void> {
     this.loggerService.log(
       `Match timeout for player ${timedOutPlayer.username} in game ${gameId}`,
     );
@@ -279,7 +280,7 @@ export class GameMatchmakingService {
     waitingPlayer.socket.emit(Matchmaking.opponentTimeout, { gameId });
 
     // Add the waiting player back to the queue
-    this.addToQueue(waitingPlayer);
+    await this.addToQueue(waitingPlayer);
 
     // Remove the game from the lobby
     this.gameManagementService.removeGameFromLobby(gameId);
