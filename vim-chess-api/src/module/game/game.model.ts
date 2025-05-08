@@ -8,17 +8,46 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 export class GameModel {
   constructor(private prismaService: PrismaService) {}
 
+  async userIsInGame(userUid: string): Promise<boolean> {
+    const game = await this.prismaService.game.findFirst({
+      where: {
+        OR: [
+          { uid_white: userUid, NOT: { uid_white: null } },
+          { uid_black: userUid, NOT: { uid_black: null } },
+        ],
+        is_finish: false,
+      },
+    });
+    return !!game;
+  }
+
   createGame(gameDto: Game) {
-    const uid_white: string | null =
-      gameDto.players[0].side === 'w' ? gameDto.players[0].userUid : null;
-    const uid_black: string | null =
-      gameDto.players[0].side === 'b' ? null : gameDto.players[0].userUid;
+    console.log(gameDto);
+    const isWhite = gameDto.players[0].side === 'w';
+    const uid_white: string | null = isWhite
+      ? gameDto.players[0].userUid
+      : null;
+    const uid_black: string | null = isWhite
+      ? null
+      : gameDto.players[0].userUid;
+
     return this.prismaService.game.create({
       data: {
         uid_white,
         uid_black,
         max_time: 600,
         move: '{}',
+      },
+    });
+  }
+
+  joinGame(userUid: string, gameId: number, side: 'w' | 'b') {
+    return this.prismaService.game.update({
+      where: {
+        id: gameId,
+      },
+      data: {
+        ...(side === 'w' ? { uid_white: userUid } : { uid_black: userUid }),
       },
     });
   }

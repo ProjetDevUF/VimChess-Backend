@@ -117,7 +117,7 @@ export class GameActionService {
     return game.players.find((pl) => pl.userUid !== player.userUid);
   }
 
-  public connectToGame(player: Client, gameId: number): Game {
+  public async connectToGame(player: Client, gameId: number): Promise<Game> {
     const game = this.list.findInLobby(gameId);
     if (!game) throw new NotFoundException(ERROR.ResourceNotFound);
 
@@ -125,8 +125,12 @@ export class GameActionService {
     if (player.userUid && pl1.userUid === player.userUid) {
       throw new ConflictException(ERROR.ConflictError);
     }
-
     game.addPlayer(player);
+    await this.gameManagementService.joinGame(
+      player.userUid,
+      gameId,
+      game.players[1].side,
+    );
     this.list.pushToStartedGames(gameId);
 
     return game;

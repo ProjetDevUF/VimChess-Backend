@@ -13,6 +13,7 @@ import {
   RematchRejectDto,
   QueueStatusDto,
   MatchFoundDto,
+  Queue,
 } from './matchmaking.dto';
 
 export {
@@ -30,4 +31,5 @@ export {
   RematchRejectDto,
   QueueStatusDto,
   MatchFoundDto,
+  Queue as QueueDto,
 };

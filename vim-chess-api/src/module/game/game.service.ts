@@ -92,8 +92,8 @@ export class GameService {
     return this.gameActionService.findCurrentOpponent(player);
   }
 
-  public connectToGame(client: Client, gameId: number): Game {
-    return this.gameActionService.connectToGame(client, gameId);
+  public async connectToGame(client: Client, gameId: number): Promise<Game> {
+    return await this.gameActionService.connectToGame(client, gameId);
   }
 
   public getInitedGameData(userUid: string, game: Game): InitedGameDataDto {
@@ -136,10 +136,6 @@ export class GameService {
     return this.matchmakingService.getQueueStatus(client);
   }
 
-  public acceptMatch(gameId: number, client: Client) {
-    return this.matchmakingService.acceptMatch(gameId, client);
-  }
-
   public proposeRematch(gameId: number, client: Client) {
     return this.matchmakingService.proposeRematch(gameId, client);
   }
@@ -154,5 +150,9 @@ export class GameService {
 
   public rejectRematch(gameId: number, client: Client) {
     return this.matchmakingService.rejectRematch(gameId, client);
+  }
+
+  public userIsInGameActive(userUid: string) {
+    return this.gameManagementService.userIsInGameActive(userUid);
   }
 }

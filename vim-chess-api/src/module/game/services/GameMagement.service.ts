@@ -25,6 +25,14 @@ export class GameManagementService {
     return newGame;
   }
 
+  public async joinGame(
+    userUid: string,
+    gameId: number,
+    side: 'w' | 'b',
+  ): Promise<void> {
+    await this.gameModel.joinGame(userUid, gameId, side);
+  }
+
   public findGameById(gameId: number): Game {
     const game = this.list.games.find((g) => g.id === gameId);
     if (!game) throw new NotFoundException(ERROR.ResourceNotFound);
@@ -49,5 +57,9 @@ export class GameManagementService {
 
   public removeGameFromLobby(gameId: number): void {
     this.list.lobby = this.list.lobby.filter((game) => game.id !== gameId);
+  }
+
+  public userIsInGameActive(userUid: string) {
+    return this.gameModel.userIsInGame(userUid);
   }
 }

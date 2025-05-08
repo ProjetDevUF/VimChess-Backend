@@ -8,7 +8,6 @@ import {
 } from '@nestjs/websockets';
 import { GameService } from './game.service';
 import {
-  AcceptMatchDto,
   ChatMessage,
   ConnectToGame,
   CreateGameDto,
@@ -103,7 +102,11 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @GetClient() client: Client,
     @MessageBody() config: CreateGameDto,
   ) {
-    if (!config || Object.keys(config).length === 0) {
+    await this.createGame(client, config);
+  }
+
+  async createGame(client: Client, config?: any) {
+    if (!config || Object.keys(config).length === 0 || !config.side) {
       config = { side: 'rand' };
     }
 
@@ -115,6 +118,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const lobby = this.gameService.getLobby();
     this.loggerService.log(`New game ${game.id}`);
     this.server.emit(Lobby.update, lobby);
+    return game.id;
   }
 
   @SubscribeMessage('join') async join(
@@ -122,7 +126,11 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() connectToGame: ConnectToGame,
   ) {
     const { gameId } = connectToGame;
-    const game = this.gameService.connectToGame(client, gameId);
+    await this.joinGame(client, gameId);
+  }
+
+  async joinGame(client: Client, gameId: number) {
+    const game = await this.gameService.connectToGame(client, gameId);
     await client.join(game.id);
     for (const player of game.players) {
       player.initedGameDataEvent(
@@ -287,24 +295,33 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.loggerService.log(
       `Player ${client.username} joining matchmaking queue`,
     );
-    await this.gameService.addToQueue(client, joinQueueDto.preferredSide);
-
+    const players = await this.gameService.addToQueue(
+      client,
+      joinQueueDto.preferredSide,
+    );
+    if (players?.player1 && players?.player2) {
+      const gameId = await this.createGame(players.player1.client, {
+        side: joinQueueDto.preferredSide,
+      });
+      await this.joinGame(players.player2.client, gameId);
+    }
     // Send initial queue status
     const queueStatus = this.gameService.getQueueStatus(client);
     client.socket.emit(Matchmaking.queueStatus, queueStatus);
 
     // Schedule periodic queue status updates
-    const intervalId = setInterval(() => {
-      if (this.clientStore.getClient(client.socket.id)) {
+    const intervalId = setInterval(async () => {
+      const res = await this.gameService.userIsInGameActive(client.userUid);
+      if (!res) {
         const updatedStatus = this.gameService.getQueueStatus(client);
         client.socket.emit(Matchmaking.queueStatus, updatedStatus);
       } else {
         clearInterval(intervalId);
+        // Store the interval ID to clear it when the player leaves the queue
+        client.socket.data.queueStatusInterval = intervalId;
+        return;
       }
-    }, 5000); // Update every 5 seconds
-
-    // Store the interval ID to clear it when the player leaves the queue
-    client.socket.data.queueStatusInterval = intervalId;
+    }, 5000); // Update every  5 seconds
   }
 
   /**
@@ -321,26 +338,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (client.socket.data.queueStatusInterval) {
       clearInterval(client.socket.data.queueStatusInterval);
       delete client.socket.data.queueStatusInterval;
-    }
-  }
-
-  /**
-   * Accept a match found by the matchmaking system
-   */
-  @SubscribeMessage(Matchmaking.acceptMatch)
-  async acceptMatch(
-    @GetClient() client: Client,
-    @MessageBody() acceptMatchDto: AcceptMatchDto,
-  ) {
-    const { gameId } = acceptMatchDto;
-    this.loggerService.log(
-      `Player ${client.username} accepting match for game ${gameId}`,
-    );
-
-    const accepted = this.gameService.acceptMatch(gameId, client);
-    if (accepted) {
-      // Join the game
-      await this.join(client, { gameId });
     }
   }
 

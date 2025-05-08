@@ -4,7 +4,7 @@ import { GameManagementService } from './GameMagement.service';
 import { GameModel } from '../game.model';
 import { LoggerService } from '../../../common/filters/logger';
 import { Matchmaking } from '../../../common/constants/game/Emit.Types';
-import { MatchFoundDto, QueueStatusDto } from '../dto';
+import { QueueDto, QueueStatusDto } from '../dto';
 
 /**
  * Service responsible for matchmaking functionality
@@ -15,12 +15,7 @@ import { MatchFoundDto, QueueStatusDto } from '../dto';
 @Injectable()
 export class GameMatchmakingService {
   private readonly loggerService: LoggerService = new LoggerService();
-  private queue: {
-    client: Client;
-    timestamp: number;
-    elo: number;
-    preferredSide?: 'w' | 'b';
-  }[] = [];
+  private queue: QueueDto[] = [];
   private timeoutIds: Map<string, NodeJS.Timeout> = new Map();
   private rematchProposals: Map<
     number,
@@ -44,10 +39,7 @@ export class GameMatchmakingService {
    * @param preferredSide The preferred side
    * @returns A promise that resolves when the player is added to the queue
    */
-  public async addToQueue(
-    client: Client,
-    preferredSide?: 'w' | 'b',
-  ): Promise<void> {
+  public async addToQueue(client: Client, preferredSide?: 'w' | 'b') {
     // Get the player's ELO from the database
     const users = await this.gameModel.getConnectedUsers();
     const user = users.find((u) => u.uid === client.userUid);
@@ -77,7 +69,7 @@ export class GameMatchmakingService {
       return;
     }
 
-    // Add player to queue
+    // Add player to the queue
     this.queue.push({ client, timestamp: Date.now(), elo, preferredSide });
     this.loggerService.log(
       `Added player ${client.username} to matchmaking queue with ELO ${elo}`,
@@ -92,7 +84,7 @@ export class GameMatchmakingService {
     this.timeoutIds.set(client.userUid, timeoutId);
 
     // Try to find a match immediately
-    await this.findMatch();
+    return this.findMatch();
   }
 
   /**
@@ -124,7 +116,7 @@ export class GameMatchmakingService {
    * Players are matched based on their ELO rating
    * The ELO range increases over time to ensure players find a match
    */
-  private async findMatch(): Promise<void> {
+  private findMatch(): { player1: QueueDto; player2: QueueDto } | undefined {
     if (this.queue.length < 2) {
       return; // Need at least 2 players to make a match
     }
@@ -153,137 +145,15 @@ export class GameMatchmakingService {
         // Check if the ELO difference is within range
         if (Math.abs(player1.elo - player2.elo) <= eloRange) {
           // Match found!
-          await this.createMatch(player1, player2);
 
           // Remove both players from the queue
           this.removeFromQueue(player1.client);
           this.removeFromQueue(player2.client);
-
-          // Restart matching process since queue has changed
-          await this.findMatch();
-          return;
+          //console.log(player1.client, player2.client);
+          return { player1, player2 };
         }
       }
     }
-  }
-
-  /**
-   * Create a match between two players
-   * @param player1 The first player
-   * @param player2 The second player
-   */
-  private async createMatch(
-    player1: { client: Client; elo: number; preferredSide?: 'w' | 'b' },
-    player2: { client: Client; elo: number; preferredSide?: 'w' | 'b' },
-  ): Promise<void> {
-    this.loggerService.log(
-      `Creating match between ${player1.client.username} and ${player2.client.username}`,
-    );
-
-    // Determine sides based on preferences
-    let side: 'w' | 'b';
-
-    if (player1.preferredSide && player2.preferredSide) {
-      // If both players have the same preference, randomly assign
-      if (player1.preferredSide === player2.preferredSide) {
-        side = Math.random() > 0.5 ? 'w' : 'b';
-      } else {
-        // If they have different preferences, honor them
-        side = player1.preferredSide;
-      }
-    } else if (player1.preferredSide) {
-      // Only player1 has a preference
-      side = player1.preferredSide;
-    } else if (player2.preferredSide) {
-      // Only player2 has a preference, give player1 the opposite
-      side = player2.preferredSide === 'w' ? 'b' : 'w';
-    } else {
-      // No preferences, randomly assign
-      side = Math.random() > 0.5 ? 'w' : 'b';
-    }
-
-    // Create game with first player
-    const game = await this.gameManagementService.createGame(player1.client, {
-      side,
-    });
-
-    // Notify players of the match
-    const matchFoundDto1: MatchFoundDto = {
-      gameId: game.id,
-      opponent: {
-        username: player2.client.username,
-        elo: player2.elo,
-      },
-    };
-
-    const matchFoundDto2: MatchFoundDto = {
-      gameId: game.id,
-      opponent: {
-        username: player1.client.username,
-        elo: player1.elo,
-      },
-    };
-
-    player1.client.socket.emit(Matchmaking.matchFound, matchFoundDto1);
-    player2.client.socket.emit(Matchmaking.matchFound, matchFoundDto2);
-
-    // Set timeouts for players to accept the match
-    const timeoutId1 = setTimeout(() => {
-      this.handleMatchTimeout(game.id, player1.client, player2.client);
-    }, 30000); // 30 seconds to accept
-
-    const timeoutId2 = setTimeout(() => {
-      this.handleMatchTimeout(game.id, player2.client, player1.client);
-    }, 30000); // 30 seconds to accept
-
-    // Store timeouts to clear them when players accept
-    this.timeoutIds.set(`${player1.client.userUid}_match`, timeoutId1);
-    this.timeoutIds.set(`${player2.client.userUid}_match`, timeoutId2);
-  }
-
-  /**
-   * Handle a player accepting a match
-   * @param gameId The ID of the game
-   * @param client The client accepting the match
-   * @returns True if the match was accepted, false otherwise
-   */
-  public acceptMatch(gameId: number, client: Client): boolean {
-    // Clear the timeout for this player
-    const timeoutId = this.timeoutIds.get(`${client.userUid}_match`);
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-      this.timeoutIds.delete(`${client.userUid}_match`);
-      this.loggerService.log(
-        `Player ${client.username} accepted match for game ${gameId}`,
-      );
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * Handle a match timeout (player didn't accept in time)
-   * @param gameId The ID of the game
-   * @param timedOutPlayer The player who timed out
-   * @param waitingPlayer The player who was waiting
-   */
-  private async handleMatchTimeout(
-    gameId: number,
-    timedOutPlayer: Client,
-    waitingPlayer: Client,
-  ): Promise<void> {
-    this.loggerService.log(
-      `Match timeout for player ${timedOutPlayer.username} in game ${gameId}`,
-    );
-
-    // Notify the waiting player
-    waitingPlayer.socket.emit(Matchmaking.opponentTimeout, { gameId });
-
-    // Add the waiting player back to the queue
-    await this.addToQueue(waitingPlayer);
-
-    // Remove the game from the lobby
-    this.gameManagementService.removeGameFromLobby(gameId);
   }
 
   /**
@@ -321,11 +191,13 @@ export class GameMatchmakingService {
     const estimatedWaitTime =
       position === -1 ? 0 : Math.max(10, waitTime + position * 5);
 
+    const players = this.findMatch();
     return {
       playersInQueue,
       position,
       estimatedWaitTime,
       eloRange,
+      players,
     };
   }
 

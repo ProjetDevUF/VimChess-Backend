@@ -1,4 +1,6 @@
 import { IsNumber, IsOptional, IsString } from 'class-validator';
+import { Client } from '../entities';
+import { QueueDto } from './index';
 
 /**
  * DTO for joining the matchmaking queue
@@ -65,32 +67,34 @@ export class QueueStatusDto {
    * Number of players in the queue
    */
   playersInQueue: number;
-  
+
   /**
    * Current player's position in the queue
    */
   position: number;
-  
+
   /**
    * Estimated wait time in seconds
    */
   estimatedWaitTime: number;
-  
+
   /**
    * Current ELO range for matching
    */
   eloRange: number;
+
+  players: { player1: QueueDto; player2: QueueDto } | undefined;
 }
 
 /**
- * DTO for match found notification
+ * DTO for match-found notification
  */
 export class MatchFoundDto {
   /**
    * ID of the created game
    */
   gameId: number;
-  
+
   /**
    * Opponent information
    */
@@ -98,4 +102,11 @@ export class MatchFoundDto {
     username: string;
     elo: number;
   };
+}
+
+export class Queue {
+  client: Client;
+  timestamp: number;
+  elo: number;
+  preferredSide?: 'w' | 'b';
 }
