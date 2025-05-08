@@ -16,6 +16,7 @@ import { LoggerService } from '../../common/filters/logger';
 import { GameManagementService } from './services/GameMagement.service';
 import { GameActionService } from './services/GameAction.service';
 import { GameSaveService } from './services/GameSave.service';
+import { GameMatchmakingService } from './services/GameMatchmaking.service';
 
 @Module({
   providers: [
@@ -24,6 +25,7 @@ import { GameSaveService } from './services/GameSave.service';
     GameManagementService,
     GameActionService,
     GameSaveService,
+    GameMatchmakingService,
     PrismaService,
     GameModel,
     ClientStore,

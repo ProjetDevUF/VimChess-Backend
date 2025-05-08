@@ -89,19 +89,12 @@ export class GameModel {
       },
       select: {
         uid: true,
-        email: true,
         username: true,
-        firstname: true,
-        lastname: true,
-        country: true,
         elo: true,
+        country: true,
         connect: true,
-        refreshToken: true,
-        createdAt: true,
-        updatedAt: true,
         Role: {
           select: {
-            id: true,
             role: true,
           },
         },

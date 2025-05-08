@@ -46,4 +46,12 @@ export class GameManagementService {
   public getUsersConnected() {
     return this.gameModel.getConnectedUsers();
   }
+
+  /**
+   * Remove a game from the lobby
+   * @param gameId The ID of the game to remove
+   */
+  public removeGameFromLobby(gameId: number): void {
+    this.list.lobby = this.list.lobby.filter((game) => game.id !== gameId);
+  }
 }

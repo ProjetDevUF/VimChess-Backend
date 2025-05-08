@@ -7,6 +7,7 @@ import { GameSaveService } from './services/GameSave.service';
 import { CompletedTurnEntity, TurnEntity } from './entities/game';
 import { Player } from './entities/player.entity';
 import { Game } from './entities/game/game.entity';
+import { GameMatchmakingService } from './services/GameMatchmaking.service';
 
 @Injectable()
 export class GameService {
@@ -14,6 +15,7 @@ export class GameService {
     private readonly gameManagementService: GameManagementService,
     private readonly gameActionService: GameActionService,
     private readonly gameSaveService: GameSaveService,
+    private readonly matchmakingService: GameMatchmakingService,
   ) {}
 
   public async createGame(player: Client, config: CreateGameDto) {
@@ -120,5 +122,37 @@ export class GameService {
 
   public getUsersConnected() {
     return this.gameManagementService.getUsersConnected();
+  }
+
+  public removeFromQueue(client: Client) {
+    return this.matchmakingService.removeFromQueue(client);
+  }
+
+  public addToQueue(client: Client, preferSide: 'w' | 'b' | undefined) {
+    return this.matchmakingService.addToQueue(client, preferSide);
+  }
+
+  public getQueueStatus(client: Client) {
+    return this.matchmakingService.getQueueStatus(client);
+  }
+
+  public acceptMatch(gameId: number, client: Client) {
+    return this.matchmakingService.acceptMatch(gameId, client);
+  }
+
+  public proposeRematch(gameId: number, client: Client) {
+    return this.matchmakingService.proposeRematch(gameId, client);
+  }
+
+  public findGameById(gameId: number) {
+    return this.gameManagementService.findGameById(gameId);
+  }
+
+  public acceptRematch(gameId: number, client: Client) {
+    return this.matchmakingService.acceptRematch(gameId, client);
+  }
+
+  public rejectRematch(gameId: number, client: Client) {
+    return this.matchmakingService.rejectRematch(gameId, client);
   }
 }

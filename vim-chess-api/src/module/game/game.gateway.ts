@@ -7,7 +7,17 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { GameService } from './game.service';
-import { ChatMessage, ConnectToGame, CreateGameDto, TurnBody } from './dto';
+import {
+  AcceptMatchDto,
+  ChatMessage,
+  ConnectToGame,
+  CreateGameDto,
+  JoinQueueDto,
+  RematchAcceptDto,
+  RematchProposeDto,
+  RematchRejectDto,
+  TurnBody,
+} from './dto';
 import { Server, Socket } from 'socket.io';
 import { UseFilters, UseGuards } from '@nestjs/common';
 import { WsValidationFilter } from '../../common/filters/WsValidationFilter';
@@ -17,6 +27,7 @@ import {
   Game,
   GameEnd,
   Lobby,
+  Matchmaking,
   room,
   User,
 } from '../../common/constants/game/Emit.Types';
@@ -70,6 +81,10 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.loggerService.log(`Client disconnected: ${socket.id}`);
     const client = this.clientStore.getClient(socket.id);
     this.gameService.removeInitedGamesBy(client);
+
+    // Remove from matchmaking queue if present
+    this.gameService.removeFromQueue(client);
+
     const opponent = this.gameService.findCurrentOpponent(client);
     if (opponent) {
       opponent.opponentDisconnectedEvent();
@@ -130,7 +145,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       player.initedGameDataEvent(
         this.gameService.getInitedGameData(client.userUid, game),
       );
+
       this.loggerService.log(`${client.username} rejoined game ${game.id}`);
+
       this.server.to(room(game.id)).emit(Game.playerReconected, {
         opponent: {
           uid: client.userUid,
@@ -147,6 +164,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.loggerService.log(
       `Client ${client.username} leave game ${gameDto.id}`,
     );
+
     winner.gameEndEvent(true, gameDto, GameEnd.playerLeave);
     looser.gameEndEvent(false, gameDto, GameEnd.playerLeave);
   }
@@ -163,6 +181,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.loggerService.log(
         `${completedMove.looser.username} loose the game ${turn.gameId}`,
       );
+      // Emit only essential board update data
       this.server.to(room(turn.gameId)).emit(Game.boardUpdate, {
         effect: completedMove.completedMove.result,
         update: {
@@ -172,6 +191,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
           side: completedMove.completedMove.side,
         },
       });
+
       completedMove.winner.gameEndEvent(
         true,
         completedMove.gameDto,
@@ -216,6 +236,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client,
     );
     this.loggerService.log(`${client.username} surrender game ${gameId}`);
+
     winner.gameEndEvent(true, gameDto, GameEnd.surrender);
     looser.gameEndEvent(false, gameDto, GameEnd.surrender);
   }
@@ -243,6 +264,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.loggerService.log(
       `${client.username} accepted draw on game ${gameId}`,
     );
+
     this.server.to(room(gameId)).emit(Game.end, { reason: GameEnd.draw, game });
   }
 
@@ -252,5 +274,149 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const result = this.gameService.rejectDraw(gameId);
     this.loggerService.log(`rejection of draw on game ${gameId}`);
     this.server.to(room(gameId)).emit(Game.rejectDraw, result);
+  }
+
+  /**
+   * Join the matchmaking queue
+   */
+  @SubscribeMessage(Matchmaking.joinQueue)
+  async joinMatchmakingQueue(
+    @GetClient() client: Client,
+    @MessageBody() joinQueueDto: JoinQueueDto,
+  ) {
+    this.loggerService.log(
+      `Player ${client.username} joining matchmaking queue`,
+    );
+    await this.gameService.addToQueue(client, joinQueueDto.preferredSide);
+
+    // Send initial queue status
+    const queueStatus = this.gameService.getQueueStatus(client);
+    client.socket.emit(Matchmaking.queueStatus, queueStatus);
+
+    // Schedule periodic queue status updates
+    const intervalId = setInterval(() => {
+      if (this.clientStore.getClient(client.socket.id)) {
+        const updatedStatus = this.gameService.getQueueStatus(client);
+        client.socket.emit(Matchmaking.queueStatus, updatedStatus);
+      } else {
+        clearInterval(intervalId);
+      }
+    }, 5000); // Update every 5 seconds
+
+    // Store the interval ID to clear it when the player leaves the queue
+    client.socket.data.queueStatusInterval = intervalId;
+  }
+
+  /**
+   * Leave the matchmaking queue
+   */
+  @SubscribeMessage(Matchmaking.leaveQueue)
+  leaveMatchmakingQueue(@GetClient() client: Client) {
+    this.loggerService.log(
+      `Player ${client.username} leaving matchmaking queue`,
+    );
+    this.gameService.removeFromQueue(client);
+
+    // Clear the interval for queue status updates
+    if (client.socket.data.queueStatusInterval) {
+      clearInterval(client.socket.data.queueStatusInterval);
+      delete client.socket.data.queueStatusInterval;
+    }
+  }
+
+  /**
+   * Accept a match found by the matchmaking system
+   */
+  @SubscribeMessage(Matchmaking.acceptMatch)
+  async acceptMatch(
+    @GetClient() client: Client,
+    @MessageBody() acceptMatchDto: AcceptMatchDto,
+  ) {
+    const { gameId } = acceptMatchDto;
+    this.loggerService.log(
+      `Player ${client.username} accepting match for game ${gameId}`,
+    );
+
+    const accepted = this.gameService.acceptMatch(gameId, client);
+    if (accepted) {
+      // Join the game
+      await this.join(client, { gameId });
+    }
+  }
+
+  /**
+   * Propose a rematch after a game has ended
+   */
+  @SubscribeMessage(Matchmaking.rematchPropose)
+  proposeRematch(
+    @GetClient() client: Client,
+    @MessageBody() rematchProposeDto: RematchProposeDto,
+  ) {
+    const { gameId } = rematchProposeDto;
+    this.loggerService.log(
+      `Player ${client.username} proposing rematch for game ${gameId}`,
+    );
+
+    const proposed = this.gameService.proposeRematch(gameId, client);
+    if (proposed) {
+      // Notify the opponent about the rematch proposal
+      const game = this.gameService.findGameById(gameId);
+      const opponent = game.players.find((p) => p.userUid !== client.userUid);
+
+      if (opponent) {
+        opponent.client.socket.emit(Matchmaking.rematchPropose, { gameId });
+      }
+    }
+  }
+
+  /**
+   * Accept a rematch proposal
+   */
+  @SubscribeMessage(Matchmaking.rematchAccept)
+  async acceptRematch(
+    @GetClient() client: Client,
+    @MessageBody() rematchAcceptDto: RematchAcceptDto,
+  ) {
+    const { gameId } = rematchAcceptDto;
+    this.loggerService.log(
+      `Player ${client.username} accepting rematch for game ${gameId}`,
+    );
+
+    const newGameId = await this.gameService.acceptRematch(gameId, client);
+    if (newGameId) {
+      // Notify both players about the new game
+      const game = this.gameService.findGameById(newGameId);
+
+      for (const player of game.players) {
+        player.client.socket.emit(Matchmaking.rematchAccept, {
+          oldGameId: gameId,
+          newGameId,
+        });
+      }
+    }
+  }
+
+  /**
+   * Reject a rematch proposal
+   */
+  @SubscribeMessage(Matchmaking.rematchReject)
+  rejectRematch(
+    @GetClient() client: Client,
+    @MessageBody() rematchRejectDto: RematchRejectDto,
+  ) {
+    const { gameId } = rematchRejectDto;
+    this.loggerService.log(
+      `Player ${client.username} rejecting rematch for game ${gameId}`,
+    );
+
+    this.gameService.rejectRematch(gameId, client);
+
+    // Notify the opponent about the rejection
+    const game = this.gameService.findGameById(gameId);
+    const opponent = game.players.find((p) => p.userUid !== client.userUid);
+
+    if (opponent) {
+      opponent.client.socket.emit(Matchmaking.rematchReject, { gameId });
+    }
   }
 }
