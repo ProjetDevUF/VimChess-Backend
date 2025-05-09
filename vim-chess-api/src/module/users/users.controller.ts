@@ -29,7 +29,7 @@ export class UsersController {
         throw new NotFoundException(ERROR.ResourceNotFound);
       }
     }
-    if (!user && uid != 'me') {
+    if (!user) {
       throw new NotFoundException(ERROR.ResourceNotFound);
     }
     return new UserEntity(user);

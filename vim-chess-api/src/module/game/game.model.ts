@@ -66,7 +66,7 @@ export class GameModel {
       Winner id = ${winner.userUid}, 
       Looser id = ${looser.userUid}.`);
     try {
-      return await this.prismaService.game.update({
+      const game = await this.prismaService.game.update({
         where: {
           id: gameId,
         },
@@ -78,6 +78,9 @@ export class GameModel {
           is_finish: true,
         },
       });
+      await this.updateEloRatings(winner.userUid, looser.userUid);
+
+      return game;
     } catch (err) {
       console.error(err);
       throw new BadRequestException('Something went wrong!');
@@ -133,6 +136,49 @@ export class GameModel {
           },
         },
       },
+    });
+  }
+
+  async updateEloRatings(winnerId: string, loserId: string): Promise<void> {
+    // Récupérer les joueurs depuis la base de données
+    const winner = await this.prismaService.user.findUnique({
+      where: { uid: winnerId },
+      select: { elo: true },
+    });
+
+    const loser = await this.prismaService.user.findUnique({
+      where: { uid: loserId },
+      select: { elo: true },
+    });
+
+    if (!winner || !loser) {
+      throw new Error('Joueur introuvable');
+    }
+
+    // Calculer le facteur K (vous pouvez ajuster selon vos besoins)
+    const K = 24;
+
+    // Calculer la probabilité de victoire
+    const expectedWinProbability =
+      1 / (1 + Math.pow(10, (loser.elo - winner.elo) / 400));
+
+    // Calculer les nouveaux classements Elo
+    const winnerNewElo = Math.round(
+      winner.elo + K * (1 - expectedWinProbability),
+    );
+    const loserNewElo = Math.round(
+      loser.elo + K * (0 - (1 - expectedWinProbability)),
+    );
+
+    // Mettre à jour les classements dans la base de données
+    await this.prismaService.user.update({
+      where: { uid: winnerId },
+      data: { elo: winnerNewElo },
+    });
+
+    await this.prismaService.user.update({
+      where: { uid: loserId },
+      data: { elo: Math.max(loserNewElo, 0) },
     });
   }
 }

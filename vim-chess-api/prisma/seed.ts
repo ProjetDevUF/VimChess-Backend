@@ -12,18 +12,15 @@ async function main() {
       role: 'Admin',
     },
   });
-
-  const userRole = await prisma.role.upsert({
+  await prisma.role.upsert({
     where: { role: 'User' },
     update: {},
     create: {
       role: 'User',
     },
   });
-
   const hashedPasswordAdminUser = await bcrypt.hash('kantin', 10);
-
-  const adminUser = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: { email: 'kantin.fagn@gmail.com' },
     update: {},
     create: {
@@ -34,9 +31,9 @@ async function main() {
       country: 'Algeria',
       password: hashedPasswordAdminUser,
       roleId: adminRole.id,
+      elo: 100,
     },
   });
-
   await prisma.user.upsert({
     where: { email: 'julien.dante@ynov.com' },
     update: {},
@@ -48,12 +45,13 @@ async function main() {
       country: 'France',
       password: hashedPasswordAdminUser,
       roleId: adminRole.id,
+      elo: 100,
     },
   });
 }
 
 main()
-  .then(async () => {
+  .then(() => {
     console.log('Seeding completed');
   })
   .catch(async (err) => {
