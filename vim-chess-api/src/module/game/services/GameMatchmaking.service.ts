@@ -149,7 +149,6 @@ export class GameMatchmakingService {
           // Remove both players from the queue
           this.removeFromQueue(player1.client);
           this.removeFromQueue(player2.client);
-          //console.log(player1.client, player2.client);
           return { player1, player2 };
         }
       }
@@ -258,19 +257,15 @@ export class GameMatchmakingService {
   /**
    * Accept a rematch proposal
    * @param gameId The ID of the completed game
-   * @param accepter The client accepting the rematch
    * @returns The ID of the new game, or null if the rematch couldn't be created
    */
-  public async acceptRematch(
-    gameId: number,
-    accepter: Client,
-  ): Promise<number | null> {
+  public acceptRematch(gameId: number): undefined {
     try {
       // Check if a rematch has been proposed for this game
       const proposal = this.rematchProposals.get(gameId);
       if (!proposal) {
         this.loggerService.log(`No rematch proposal found for game ${gameId}`);
-        return null;
+        return;
       }
 
       // Clear the timeout
@@ -282,32 +277,9 @@ export class GameMatchmakingService {
 
       // Remove the proposal
       this.rematchProposals.delete(gameId);
-
-      // Get the proposer client
-      const game = this.gameManagementService.findGameById(gameId);
-      const proposerPlayer = game.players.find(
-        (p) => p.userUid === proposal.proposer,
-      );
-
-      if (!proposerPlayer) {
-        this.loggerService.error(`Proposer not found for game ${gameId}`);
-        return null;
-      }
-
-      // Create a new game with swapped sides
-      const accepterSide = proposerPlayer.side === 'w' ? 'b' : 'w';
-      const newGame = await this.gameManagementService.createGame(accepter, {
-        side: accepterSide,
-      });
-
-      this.loggerService.log(
-        `Rematch accepted for game ${gameId}, created new game ${newGame.id}`,
-      );
-
-      return newGame.id;
     } catch (error) {
       this.loggerService.error(`Error accepting rematch: ${error.message}`);
-      return null;
+      return;
     }
   }
 

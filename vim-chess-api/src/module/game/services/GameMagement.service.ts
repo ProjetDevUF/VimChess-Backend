@@ -39,6 +39,12 @@ export class GameManagementService {
     return game;
   }
 
+  async findGamePrismaById(gameId: number) {
+    const game = await this.gameModel.findGameById(gameId);
+    if (!game) throw new NotFoundException(ERROR.ResourceNotFound);
+    return game;
+  }
+
   public getLobby(): GameData[] {
     return this.list.getLobby();
   }

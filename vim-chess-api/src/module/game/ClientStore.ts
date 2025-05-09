@@ -23,4 +23,14 @@ export class ClientStore {
   getClient(socketId: string): Client {
     return <Client>this.clients.get(socketId);
   }
+
+  getClientByUid(userUid: string): Client | undefined {
+    for (const client of this.clients.values()) {
+      if (client.userUid === userUid) {
+        return client;
+      }
+    }
+    return undefined;
+  }
+
 }

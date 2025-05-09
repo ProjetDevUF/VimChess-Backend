@@ -144,8 +144,12 @@ export class GameService {
     return this.gameManagementService.findGameById(gameId);
   }
 
-  public acceptRematch(gameId: number, client: Client) {
-    return this.matchmakingService.acceptRematch(gameId, client);
+  public findGamePrismaById(gameId: number) {
+    return this.gameManagementService.findGamePrismaById(gameId);
+  }
+
+  public acceptRematch(gameId: number) {
+    return this.matchmakingService.acceptRematch(gameId);
   }
 
   public rejectRematch(gameId: number, client: Client) {

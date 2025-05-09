@@ -8,6 +8,12 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 export class GameModel {
   constructor(private prismaService: PrismaService) {}
 
+  findGameById(gameId: number) {
+    return this.prismaService.game.findUnique({
+      where: { id: gameId },
+    });
+  }
+
   async userIsInGame(userUid: string): Promise<boolean> {
     const game = await this.prismaService.game.findFirst({
       where: {
@@ -22,7 +28,6 @@ export class GameModel {
   }
 
   createGame(gameDto: Game) {
-    console.log(gameDto);
     const isWhite = gameDto.players[0].side === 'w';
     const uid_white: string | null = isWhite
       ? gameDto.players[0].userUid

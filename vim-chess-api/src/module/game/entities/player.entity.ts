@@ -31,10 +31,6 @@ export class Player {
     this.client.socket.emit(GameEvent.end, { winner, game, reason });
   }
 
-  public timeTickEvent(sides: { w: number; b: number }): void {
-    this.client.socket.emit(GameEvent.timeTick, sides);
-  }
-
   public initedGameDataEvent(data: InitedGameDataDto): void {
     this.client.socket.emit(GameEvent.init, data);
   }

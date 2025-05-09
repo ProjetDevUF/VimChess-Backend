@@ -81,7 +81,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const client = this.clientStore.getClient(socket.id);
     this.gameService.removeInitedGamesBy(client);
 
-    // Remove from matchmaking queue if present
+    // Remove from the matchmaking queue if present
     this.gameService.removeFromQueue(client);
 
     const opponent = this.gameService.findCurrentOpponent(client);
@@ -317,11 +317,11 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         client.socket.emit(Matchmaking.queueStatus, updatedStatus);
       } else {
         clearInterval(intervalId);
-        // Store the interval ID to clear it when the player leaves the queue
-        client.socket.data.queueStatusInterval = intervalId;
         return;
       }
-    }, 5000); // Update every  5 seconds
+    }, 5000); // Update every 5 seconds
+    // Store the interval ID to clear it when the player leaves the queue
+    client.socket.data.queueStatusInterval = intervalId;
   }
 
   /**
@@ -345,7 +345,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
    * Propose a rematch after a game has ended
    */
   @SubscribeMessage(Matchmaking.rematchPropose)
-  proposeRematch(
+  async proposeRematch(
     @GetClient() client: Client,
     @MessageBody() rematchProposeDto: RematchProposeDto,
   ) {
@@ -357,11 +357,14 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const proposed = this.gameService.proposeRematch(gameId, client);
     if (proposed) {
       // Notify the opponent about the rematch proposal
-      const game = this.gameService.findGameById(gameId);
-      const opponent = game.players.find((p) => p.userUid !== client.userUid);
-
-      if (opponent) {
-        opponent.client.socket.emit(Matchmaking.rematchPropose, { gameId });
+      const game = await this.gameService.findGamePrismaById(gameId);
+      const opponentUid =
+        game.uid_white === client.userUid ? game.uid_black : game.uid_white;
+      if (opponentUid) {
+        const opponent = this.clientStore.getClientByUid(opponentUid);
+        if (opponent) {
+          opponent.socket.emit(Matchmaking.rematchPropose, { gameId });
+        }
       }
     }
   }
@@ -371,21 +374,33 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
    */
   @SubscribeMessage(Matchmaking.rematchAccept)
   async acceptRematch(
-    @GetClient() client: Client,
-    @MessageBody() rematchAcceptDto: RematchAcceptDto,
+    @GetClient()
+    client: Client,
+    @MessageBody()
+    rematchAcceptDto: RematchAcceptDto,
   ) {
     const { gameId } = rematchAcceptDto;
     this.loggerService.log(
       `Player ${client.username} accepting rematch for game ${gameId}`,
     );
 
-    const newGameId = await this.gameService.acceptRematch(gameId, client);
-    if (newGameId) {
-      // Notify both players about the new game
-      const game = this.gameService.findGameById(newGameId);
+    this.gameService.acceptRematch(gameId);
 
-      for (const player of game.players) {
-        player.client.socket.emit(Matchmaking.rematchAccept, {
+    const newGameId = await this.createGame(client);
+    const game = await this.gameService.findGamePrismaById(gameId);
+    const opponentUid =
+      game.uid_white === client.userUid ? game.uid_black : game.uid_white;
+    if (opponentUid) {
+      const opponent = this.clientStore.getClientByUid(opponentUid);
+      if (opponent) {
+        await this.joinGame(opponent, newGameId);
+
+        // Notify both players about the new game
+        opponent.socket.emit(Matchmaking.rematchAccept, {
+          oldGameId: gameId,
+          newGameId,
+        });
+        client.socket.emit(Matchmaking.rematchAccept, {
           oldGameId: gameId,
           newGameId,
         });
@@ -398,8 +413,10 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
    */
   @SubscribeMessage(Matchmaking.rematchReject)
   rejectRematch(
-    @GetClient() client: Client,
-    @MessageBody() rematchRejectDto: RematchRejectDto,
+    @GetClient()
+    client: Client,
+    @MessageBody()
+    rematchRejectDto: RematchRejectDto,
   ) {
     const { gameId } = rematchRejectDto;
     this.loggerService.log(
