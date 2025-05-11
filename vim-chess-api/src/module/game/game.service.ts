@@ -77,10 +77,7 @@ export class GameService {
   public async acceptDraw(gameId: number, client: Client) {
     const gameDto = this.gameActionService.acceptDraw(gameId, client);
 
-    const game: Game = this.gameManagementService.findGameById(gameId);
-    const [pl1, pl2] = game.players;
-
-    await this.gameSaveService.saveDraw(pl1, pl2, gameDto);
+    await this.gameSaveService.saveDraw(gameDto);
     return gameDto;
   }
 

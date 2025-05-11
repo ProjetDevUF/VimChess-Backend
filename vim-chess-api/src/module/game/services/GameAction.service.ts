@@ -52,7 +52,6 @@ export class GameActionService {
 
   public proposeDraw(gameId: number, client: Client) {
     const game = this.gameManagementService.findGameById(gameId);
-
     const player = game.players.find((pl) => pl.userUid === client.userUid);
     if (!player) throw new NotFoundException(ERROR.ResourceNotFound);
 
@@ -64,6 +63,7 @@ export class GameActionService {
 
   public rejectDraw(gameId: number) {
     const game = this.gameManagementService.findGameById(gameId);
+    
     const { w, b } = game.draw;
 
     if (!w && !b) throw new ConflictException(ERROR.ConflictError);
@@ -86,7 +86,7 @@ export class GameActionService {
     game.setDrawProposeFrom(player.side);
     game.endGameByDraw();
 
-    const gameDto = this.adapter.gameWithWinnerDto(game);
+    const gameDto = this.adapter.gameWithDrawDto(game);
     this.list.gameEnd(gameDto.id);
 
     return gameDto;

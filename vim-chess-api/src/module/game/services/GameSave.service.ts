@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { GameModel } from '../game.model';
 import { Player } from '../entities/player.entity';
-import { Config, GameResult, GameWithWinner, Move } from '../entities/game';
+import { Config, DrawGame, GameResult, Move } from '../entities/game';
 
 @Injectable()
 export class GameSaveService {
@@ -37,11 +37,7 @@ export class GameSaveService {
     });
   }
 
-  public async saveDraw(pl1: Player, pl2: Player, gameDto: GameWithWinner) {
-    return this.gameModel.saveGameDraw({
-      pl1,
-      pl2,
-      ...gameDto,
-    });
+  public async saveDraw(gameDto: DrawGame) {
+    return this.gameModel.saveGameDraw(gameDto);
   }
 }
