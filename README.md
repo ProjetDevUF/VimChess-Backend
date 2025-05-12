@@ -110,6 +110,3 @@ Le système de matchmaking permet de :
 
 ## Licence
 Ce projet est sous licence [LICENSE](LICENSE).
-
-Ce projet a été inspiré par [nestjs-api-tutorial](https://github.com/vladwulf/nestjs-api-tutorial.git) de vladwulf.
-
