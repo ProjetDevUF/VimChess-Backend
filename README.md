@@ -98,6 +98,15 @@ npm run build
 npm run start:prod
 ```
 
+## Logs
+
+Il y a deux comptes
+- email: kantin.fagn@gmail.com
+- password: Vimchess13!
+
+et
+- julien.dante@ynov.com
+- password: Vimchess13!
 
 ## Fonctionnalité de Matchmaking
 Le système de matchmaking permet de :
