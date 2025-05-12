@@ -63,7 +63,7 @@ export class GameActionService {
 
   public rejectDraw(gameId: number) {
     const game = this.gameManagementService.findGameById(gameId);
-    
+
     const { w, b } = game.draw;
 
     if (!w && !b) throw new ConflictException(ERROR.ConflictError);
