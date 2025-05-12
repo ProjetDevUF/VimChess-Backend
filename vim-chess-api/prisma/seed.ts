@@ -19,7 +19,7 @@ async function main() {
       role: 'User',
     },
   });
-  const hashedPasswordAdminUser = await bcrypt.hash('kantin', 10);
+  const hashedPasswordAdminUser = await bcrypt.hash('kantin06*', 10);
   await prisma.user.upsert({
     where: { email: 'kantin.fagn@gmail.com' },
     update: {},
